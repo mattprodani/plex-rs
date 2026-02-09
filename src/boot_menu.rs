@@ -1,4 +1,3 @@
-use alloc::vec::Vec;
 use embedded_graphics::{
     mono_font::{MonoTextStyle, ascii::FONT_9X15},
     pixelcolor::Rgb888,
@@ -12,28 +11,25 @@ use uefi::proto::console::{
     text::{Input, Key, ScanCode},
 };
 
-use crate::{
-    bootables::{DisplayBootEntry, GenericBootTarget},
-    display::GopDisplay,
-};
+use crate::{bootables::Boot, display::GopDisplay};
 
 /// Very simple BootMenu that displays listings, handles keyboard input.
-pub struct BootMenu<'a> {
-    /// this won't be string for long.
-    targets: &'a Vec<GenericBootTarget>,
+pub struct BootMenu<'a, T>
+where
+    T: Boot,
+{
+    targets: &'a [T],
     selected: usize,
-    display: GopDisplay,
-    gop: &'a mut GraphicsOutput,
+    display: GopDisplay<'a>,
 }
 
-impl<'a> BootMenu<'a> {
-    pub fn new(gop: &'a mut GraphicsOutput, targets: &'a Vec<GenericBootTarget>) -> Self {
+impl<'a, T: Boot> BootMenu<'a, T> {
+    pub fn new(gop: &'a mut GraphicsOutput, targets: &'a [T]) -> Self {
         let display = GopDisplay::new(gop);
         Self {
             targets,
             selected: 0,
             display,
-            gop,
         }
     }
 
@@ -72,12 +68,15 @@ impl<'a> BootMenu<'a> {
     }
 
     /// Handle arrow key input and return the selected index when Enter is pressed.
-    pub fn run(mut self, input: &'a mut Input) -> Result<&'a GenericBootTarget> {
+    pub fn run(mut self, input: &'a mut Input) -> Result<&'a T> {
         loop {
             self.draw();
-            self.display.flush(self.gop)?;
+            self.display.flush()?;
 
-            let mut events = [input.wait_for_key_event().unwrap()];
+            // unchecked because Option::<NonNull>::None.unwrap_unchecked() == 0
+            // due to the niche optimization with valid size and alignment.
+            let mut events = [unsafe { input.wait_for_key_event().unwrap_unchecked() }];
+
             uefi::boot::wait_for_event(&mut events)
                 .map_err(|_| uefi::Error::from(uefi::Status::INVALID_PARAMETER))?;
 

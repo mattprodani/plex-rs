@@ -4,14 +4,38 @@ Plex is a pure Rust GUI UEFI bootloader designed for managing multi-boot systems
 I spent too much time trying to configure Refind to my liking and thought I'd start working on something else for fun.
 I will consider this project "complete" once I have replaced my boot manager with `plex` and begin daily driving it.
 
-Current state: WIP. Working POC of a grub-like selection list with capability to boot into multiple targets. Can boot
-any regular EFI application with support for passing commands. e.g. most linux kernels (compiled with EFI stubs), windows, etc.
-There is no standalone initramfs support without EFI stubs, but intended. I also have some workflows that require Secure Boot which
-I also intend on supporting.
+Current state: It works on my machine, and, I can boot the linux kernel from an ISO, like Ventoy!! For ISO support, ported some iso9660 support to no-std in this fork: [mattprodani/iso9660-no-std-rs](https://github.com/mattprodani/iso9660-no-std-rs)
 
-As expected, this is built with `#[no_std]`, and `global_allocator` feature from uefi crate. I don't intend on going alloc-free, as this is intended for PCs rather than small embedded devices.
+## Configuration
 
-Build for target {arch}-unknown-uefi
+Plex loads boot targets from a TOML configuration file located at `\plex.toml` on the EFI system partition.
+
+Example configuration:
+
+```toml
+
+# Boot from an ISO file
+[[boot_targets]]
+type = "iso"
+label = "Kali Linux"
+iso_path = "my_distro.iso"
+executable = "\\EFI\\arch\\vmlinuz-linux.efi"
+options = "root=/dev/sda2 rw initrd=\\EFI\\arch\\initramfs-linux.img"
+
+# Example boot target for Arch Linux
+[[boot_targets]]
+type = "generic"
+label = "Arch Linux"
+executable = "\\EFI\\arch\\vmlinuz-linux.efi"
+options = "root=/dev/sda2 rw initrd=\\EFI\\arch\\initramfs-linux.img"
+
+```
+
+See `plex.toml.example` for more examples.
+
+## Building
+
+Build for target {arch}-unknown-uefi. You'll figure out the rest.
 
 ```
   cargo build --target x86_64-unknown-uefi

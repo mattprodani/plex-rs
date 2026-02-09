@@ -1,9 +1,26 @@
 #[derive(Debug, thiserror_no_std::Error)]
-pub enum BootEntryError {
+pub enum AppError {
     #[error(transparent)]
     Uefi(#[from] uefi::Error),
+    #[error(transparent)]
+    UefiFs(#[from] uefi::fs::Error),
+    #[error(transparent)]
+    FromStrError(#[from] uefi::data_types::FromStrError),
+    #[cfg(feature = "iso")]
+    #[error(transparent)]
+    Iso(#[from] iso9660::ISOError<iso9660::io::ErrorKind>),
+    // we should merge this with the above
+    #[cfg(feature = "iso")]
+    #[error(transparent)]
+    IsoIo(#[from] iso9660::io::ErrorKind),
+    #[error(transparent)]
+    PathRef(#[from] crate::path::PathRefParseError),
     #[error(transparent)]
     Builder(#[from] uefi::proto::device_path::build::BuildError),
     #[error(transparent)]
     Path(#[from] uefi::proto::device_path::DevicePathUtilitiesError),
+    #[error("Error: {0}")]
+    Generic(&'static str),
+    #[error("NotImplemented: {0}")]
+    NotImplemented(&'static str),
 }

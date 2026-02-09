@@ -6,26 +6,28 @@ use alloc::vec::Vec;
 use embedded_graphics::{pixelcolor::Rgb888, prelude::*};
 use uefi::proto::console::gop::{BltOp, BltPixel, BltRegion, GraphicsOutput};
 
-pub struct GopDisplay {
+pub struct GopDisplay<'a> {
     width: usize,
     height: usize,
     buffer: Vec<BltPixel>,
+    gop: &'a mut GraphicsOutput,
 }
 
-impl GopDisplay {
+impl<'a> GopDisplay<'a> {
     /// Create a new `GopDisplay` matching the current GOP mode resolution.
-    pub fn new(gop: &GraphicsOutput) -> Self {
+    pub fn new(gop: &'a mut GraphicsOutput) -> Self {
         let (width, height) = gop.current_mode_info().resolution();
         Self {
             width,
             height,
             buffer: vec![BltPixel::new(0, 0, 0); width * height],
+            gop,
         }
     }
 
     /// Blit the entire buffer to the framebuffer.
-    pub fn flush(&self, gop: &mut GraphicsOutput) -> Result<(), uefi::Error> {
-        gop.blt(BltOp::BufferToVideo {
+    pub fn flush(&mut self) -> Result<(), uefi::Error> {
+        self.gop.blt(BltOp::BufferToVideo {
             buffer: &self.buffer,
             src: BltRegion::Full,
             dest: (0, 0),
@@ -40,7 +42,7 @@ impl GopDisplay {
     }
 }
 
-impl DrawTarget for GopDisplay {
+impl<'a> DrawTarget for GopDisplay<'a> {
     type Color = Rgb888;
     type Error = core::convert::Infallible;
 
@@ -67,7 +69,7 @@ impl DrawTarget for GopDisplay {
     }
 }
 
-impl OriginDimensions for GopDisplay {
+impl<'a> OriginDimensions for GopDisplay<'a> {
     fn size(&self) -> Size {
         Size::new(self.width as u32, self.height as u32)
     }

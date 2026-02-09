@@ -1,43 +1,62 @@
-use crate::errors::BootEntryError;
-use alloc::boxed::Box;
+use crate::errors::AppError;
+use crate::path::{DiskManager, PathReference};
+use alloc::borrow::ToOwned as _;
 use alloc::string::{String, ToString};
-use alloc::vec::Vec;
+use uefi::CString16;
+use uefi::boot::LoadImageSource;
 use uefi::cstr16;
-use uefi::{
-    CString16,
-    boot::{LoadImageSource, ScopedProtocol, open_protocol_exclusive},
-    proto::{
-        device_path::{DevicePath, PoolDevicePath},
-        loaded_image::LoadedImage,
-    },
-};
+use uefi::proto::device_path::PoolDevicePath;
+use uefi::proto::loaded_image::LoadedImage;
 
-/// A trait for a bootable. Should boot the bootable.
-pub trait Boot {
-    fn boot(&self, handle: uefi::Handle) -> Result<(), BootEntryError>;
+#[derive(Debug)]
+pub enum BootTarget {
+    Generic(GenericBootTarget),
+    #[cfg(feature = "iso")]
+    Iso(crate::iso::IsoBootTarget),
+}
+
+/// note: this is a two-way implementation, to allow decisions in the
+/// future whether we want to model all targets as enum or use dyn dispatch.
+impl Boot for BootTarget {
+    fn boot(&self, handle: uefi::Handle, dm: &DiskManager) -> Result<(), AppError> {
+        match self {
+            BootTarget::Generic(target) => target.boot(handle, dm),
+            #[cfg(feature = "iso")]
+            BootTarget::Iso(target) => target.boot(handle, dm),
+        }
+    }
+    fn display_options(&self) -> DisplayOptions {
+        match self {
+            BootTarget::Generic(target) => target.display_options(),
+            #[cfg(feature = "iso")]
+            BootTarget::Iso(target) => target.display_options(),
+        }
+    }
+}
+
+/// A trait for a bootable. Normally boots an EFI executable.
+/// More generically, this could also run some code,
+/// perhaps taking control over the graphics, and potentially returning
+/// control flow back, rather than leave boot services. Consider an
+/// embedded utility such as a MOK manager in addition to something like a
+/// linux kernel stub.
+pub trait Boot: core::fmt::Debug {
+    fn boot(&self, handle: uefi::Handle, dm: &DiskManager) -> Result<(), AppError>;
+    fn display_options(&self) -> DisplayOptions;
 }
 
 pub struct DisplayOptions {
     pub label: String,
 }
 
-/// A trait for a bootable. Should boot the bootable.
-pub trait DisplayBootEntry {
-    fn display_options(&self) -> DisplayOptions;
-}
-
-impl DisplayBootEntry for GenericBootTarget {
-    fn display_options(&self) -> DisplayOptions {
-        DisplayOptions {
-            label: self.executable.to_string(),
-        }
-    }
-}
-
-/// A generic executable + cmd target. Linux kernel can be booted into
-/// directly via EFI stub, if compiled with `CONFIG_EFI_STUB=y`, which
-/// is a very common default.
+/// A generic EFI executable + cmd chain-loadable target.
+///
+/// For example, the Linux kernel can be booted into directly via EFI stub, if compiled with `CONFIG_EFI_STUB=y`, which
+/// is a very common default. Windows is also easily chain-loaded.
+#[derive(Debug)]
 pub struct GenericBootTarget {
+    /// Display label for the boot menu
+    label: String,
     /// Path to executable. current limitation is that this path is relative
     /// to the root the bootloader is loaded from.
     executable: CString16,
@@ -46,48 +65,29 @@ pub struct GenericBootTarget {
 }
 
 impl GenericBootTarget {
-    pub fn new(executable: impl AsRef<str>, options: impl AsRef<str>) -> Self {
-        // ok to unwrap i think. would panic if any of the strings provided
-        // have inner null char, which i don't think is possible.
+    pub fn new(
+        label: impl AsRef<str>,
+        executable: impl AsRef<str>,
+        options: impl AsRef<str>,
+    ) -> Self {
         Self {
-            executable: CString16::try_from(executable.as_ref()).unwrap(),
-            options: CString16::try_from(options.as_ref()).unwrap(),
+            label: label.as_ref().to_string(),
+            executable: CString16::try_from(executable.as_ref())
+                .unwrap_or(cstr16!("failed to parse").to_owned()),
+            options: CString16::try_from(options.as_ref())
+                .unwrap_or(cstr16!("failed to parse").to_owned()),
         }
-    }
-
-    fn get_image_path(
-        &self,
-        root_path: &DevicePath,
-    ) -> Result<Box<PoolDevicePath>, BootEntryError> {
-        let mut v = Vec::new();
-        let root_to_executable =
-            uefi::proto::device_path::build::DevicePathBuilder::with_vec(&mut v)
-                .push(&uefi::proto::device_path::build::media::FilePath {
-                    path_name: &self.executable,
-                })?
-                .finalize()?;
-        Ok(Box::new(root_path.append_path(root_to_executable)?))
     }
 }
 
 impl Boot for GenericBootTarget {
-    fn boot(&self, handle: uefi::Handle) -> Result<(), BootEntryError> {
-        let root_path = get_root_path(handle)?;
-        let img_path = self.get_image_path(&root_path)?;
+    fn boot(&self, handle: uefi::Handle, dm: &DiskManager) -> Result<(), AppError> {
+        let pathref = PathReference::parse(self.executable.to_string().as_str())?;
+        let img_path = dm.resolve_path(&pathref)?;
+
         log::debug!(
-            "Root path: {}, img path: {}",
-            root_path
-                .to_string(
-                    uefi::proto::device_path::text::DisplayOnly(true),
-                    uefi::proto::device_path::text::AllowShortcuts(true)
-                )
-                .unwrap_or(cstr16!("failed to parse.").into()),
-            img_path
-                .to_string(
-                    uefi::proto::device_path::text::DisplayOnly(true),
-                    uefi::proto::device_path::text::AllowShortcuts(true)
-                )
-                .unwrap_or(cstr16!("failed to parse.").into()),
+            "Loading image from resolved path: {}",
+            path_to_string(&img_path)
         );
 
         let src = LoadImageSource::FromDevicePath {
@@ -98,19 +98,28 @@ impl Boot for GenericBootTarget {
         let loaded_image_handle = uefi::boot::load_image(handle, src)?;
         let mut loaded_img =
             uefi::boot::open_protocol_exclusive::<LoadedImage>(loaded_image_handle)?;
+
         unsafe {
             loaded_img.set_load_options(
                 self.options.as_ptr() as *const u8,
                 self.options.num_bytes() as u32,
             );
         }
+
         Ok(uefi::boot::start_image(loaded_image_handle)?)
+    }
+
+    fn display_options(&self) -> DisplayOptions {
+        DisplayOptions {
+            label: self.label.clone(),
+        }
     }
 }
 
-fn get_root_path(image_handle: uefi::Handle) -> uefi::Result<ScopedProtocol<DevicePath>> {
-    let loaded_image = open_protocol_exclusive::<LoadedImage>(image_handle)?;
-    // is this a sane unwrap?
-    let device_handle = loaded_image.device().expect("to exist");
-    open_protocol_exclusive::<DevicePath>(device_handle)
+fn path_to_string(path: &PoolDevicePath) -> CString16 {
+    path.to_string(
+        uefi::proto::device_path::text::DisplayOnly(true),
+        uefi::proto::device_path::text::AllowShortcuts(true),
+    )
+    .unwrap_or(cstr16!("failed to parse.").into())
 }

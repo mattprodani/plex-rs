@@ -6,6 +6,15 @@ edition = "2024"
 [dependencies]
 embedded-graphics = "0.8.1"
 embedded-graphics-core = "0.4.0"
+iso9660 = { version = "0.1.1", path = "../iso9660-no-std-rs", optional = true, default-features = false, features = ["joliet"], package = "iso9660-no-std"}
 log = "0.4.29"
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 thiserror-no-std = "2.0.2"
-uefi = { version = "0.36.1", features = ["alloc", "global_allocator", "logger", "panic_handler"] }
+toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
+uefi = { version = "0.36.1", default-features = false, features = ["alloc", "logger", "panic_handler"] }
+uefi-raw = "0.13.0"
+
+[features]
+default = ["iso", "global_allocator"]
+global_allocator = ["uefi/global_allocator"]
+iso = ["dep:iso9660"]
