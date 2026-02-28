@@ -1,8 +1,8 @@
 use alloc::boxed::Box;
-use uefi::Identify;
 use uefi::boot::ScopedProtocol;
 use uefi::cstr16;
 use uefi::proto::device_path::DevicePath;
+use uefi::Identify;
 
 #[repr(C, packed)]
 pub struct IsoDevicePath {

@@ -94,8 +94,8 @@ impl Config {
 
 /// Read a file from the UEFI filesystem into a String
 fn read_file_to_string(path: &str) -> Result<String, ConfigError> {
-    use uefi::CString16;
     use uefi::fs::FileSystem;
+    use uefi::CString16;
 
     // Convert path to CString16
     let path_cstr = CString16::try_from(path).map_err(|_| ConfigError::InvalidPath)?;

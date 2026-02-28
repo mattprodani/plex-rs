@@ -5,11 +5,15 @@ use crate::path::DiskManager;
 use uefi::proto::console::text::Input;
 
 /// Outcome for a blocking app run.
+#[must_use]
 pub enum AppResult {
     /// App finished and returned control to the caller.
     Done,
     /// App initiated a boot flow and should not return to the caller.
     Booted,
+    /// Yield control back to the runner, indicates an App has not finished execution.
+    /// This may be used to trigger a redraw from the runner.
+    Yield,
     /// App encountered an unrecoverable error during execution.
     Error(AppError),
 }

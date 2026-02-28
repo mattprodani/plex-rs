@@ -5,8 +5,6 @@ use alloc::boxed::Box;
 use alloc::string::ToString;
 use uefi::Guid;
 use uefi::Handle;
-use uefi_raw::Char16;
-use uefi_raw::Status;
 use uefi_raw::protocol::file_system::FileAttribute;
 use uefi_raw::protocol::file_system::FileInfo;
 use uefi_raw::protocol::file_system::FileMode;
@@ -14,6 +12,8 @@ use uefi_raw::protocol::file_system::FileProtocolRevision;
 use uefi_raw::protocol::file_system::FileProtocolV1;
 use uefi_raw::protocol::file_system::FileSystemInfo;
 use uefi_raw::protocol::file_system::SimpleFileSystemProtocol;
+use uefi_raw::Char16;
+use uefi_raw::Status;
 
 #[cfg(feature = "iso")]
 use crate::iso::iso_file::IsoFile;

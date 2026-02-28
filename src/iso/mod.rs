@@ -2,9 +2,9 @@
 
 use alloc::{borrow::ToOwned, string::String};
 use uefi::{
-    CString16,
     boot::ScopedProtocol,
     proto::{loaded_image::LoadedImage, media::fs::SimpleFileSystem},
+    CString16,
 };
 
 use crate::{bootables::DisplayOptions, errors::AppError};

@@ -3,11 +3,11 @@ use crate::errors::AppError;
 use crate::path::{DiskManager, PathReference};
 use alloc::borrow::ToOwned as _;
 use alloc::string::{String, ToString};
-use uefi::CString16;
 use uefi::boot::LoadImageSource;
 use uefi::cstr16;
 use uefi::proto::device_path::PoolDevicePath;
 use uefi::proto::loaded_image::LoadedImage;
+use uefi::CString16;
 
 #[derive(Debug)]
 pub enum BootTarget {

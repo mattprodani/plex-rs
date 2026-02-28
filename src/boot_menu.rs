@@ -11,6 +11,7 @@ use crate::{
     AppError,
     app::{App, AppCtx, AppResult, DisplayEntry},
     display::GopDisplay,
+    overlay::ErrorOverlay,
 };
 
 /// Very simple BootMenu that displays listings, handles keyboard input.
@@ -118,15 +119,20 @@ impl<'a, T: App + DisplayEntry> App for BootMenu<'a, T> {
             };
 
             match result {
-                AppResult::Done => {
+                AppResult::Done | AppResult::Yield => {
                     log::info!("returning control flow back to boot menu loop")
                 }
-
                 AppResult::Booted => {
                     log::info!("booted target successfully, exiting");
                     return result;
                 }
-                AppResult::Error(_err) => todo!(),
+                AppResult::Error(ref err) => {
+                    let mut overlay = ErrorOverlay::new(err);
+                    if let AppResult::Error(_) = overlay.run(ctx) {
+                        log::error!("the error overlay errored, oops.");
+                        return result;
+                    }
+                }
             }
         }
     }

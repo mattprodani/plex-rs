@@ -10,6 +10,7 @@ mod display;
 mod errors;
 #[cfg(feature = "iso")]
 mod iso;
+mod overlay;
 mod path;
 
 pub use errors::AppError;
@@ -20,9 +21,10 @@ use uefi::{
     proto::console::{gop::GraphicsOutput, text::Input},
 };
 
+use crate::display::GopDisplay;
 use crate::{
-    app::{App, AppCtx},
-    display::GopDisplay,
+    app::{App, AppCtx, AppResult},
+    overlay::ErrorOverlay,
 };
 
 #[entry]
@@ -55,15 +57,18 @@ fn main() -> Status {
     let input_handle = boot::get_handle_for_protocol::<Input>().unwrap();
     let mut input = boot::open_protocol_exclusive::<Input>(input_handle).unwrap();
 
-    let mut ctx = AppCtx {
-        display: &mut GopDisplay::new(&mut gop),
+    let mut display = GopDisplay::new(&mut gop);
+    let mut app_ctx = AppCtx {
+        display: &mut display,
         input: &mut input,
         disk_manager: &disk_manager,
         handle,
     };
-
     let mut menu = boot_menu::BootMenu::<bootables::BootTarget>::new(boot_targets.as_mut_slice());
-    menu.run(&mut ctx);
+    if let AppResult::Error(ref err) = menu.run(&mut app_ctx) {
+        let mut overlay = ErrorOverlay::new(err);
+        let _ = overlay.run(&mut app_ctx);
+    }
 
     Status::SUCCESS
 }
