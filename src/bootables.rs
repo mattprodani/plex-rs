@@ -1,3 +1,4 @@
+use crate::app::{App, DisplayEntry};
 use crate::errors::AppError;
 use crate::path::{DiskManager, PathReference};
 use alloc::borrow::ToOwned as _;
@@ -17,7 +18,7 @@ pub enum BootTarget {
 
 /// note: this is a two-way implementation, to allow decisions in the
 /// future whether we want to model all targets as enum or use dyn dispatch.
-impl Boot for BootTarget {
+impl BootTarget {
     fn boot(&self, handle: uefi::Handle, dm: &DiskManager) -> Result<(), AppError> {
         match self {
             BootTarget::Generic(target) => target.boot(handle, dm),
@@ -25,6 +26,18 @@ impl Boot for BootTarget {
             BootTarget::Iso(target) => target.boot(handle, dm),
         }
     }
+}
+
+impl App for BootTarget {
+    fn run(&mut self, ctx: &mut crate::app::AppCtx) -> crate::app::AppResult {
+        match self.boot(ctx.handle, ctx.disk_manager) {
+            Ok(_) => crate::app::AppResult::Booted,
+            Err(e) => crate::app::AppResult::Error(e),
+        }
+    }
+}
+
+impl DisplayEntry for BootTarget {
     fn display_options(&self) -> DisplayOptions {
         match self {
             BootTarget::Generic(target) => target.display_options(),
@@ -32,17 +45,6 @@ impl Boot for BootTarget {
             BootTarget::Iso(target) => target.display_options(),
         }
     }
-}
-
-/// A trait for a bootable. Normally boots an EFI executable.
-/// More generically, this could also run some code,
-/// perhaps taking control over the graphics, and potentially returning
-/// control flow back, rather than leave boot services. Consider an
-/// embedded utility such as a MOK manager in addition to something like a
-/// linux kernel stub.
-pub trait Boot: core::fmt::Debug {
-    fn boot(&self, handle: uefi::Handle, dm: &DiskManager) -> Result<(), AppError>;
-    fn display_options(&self) -> DisplayOptions;
 }
 
 pub struct DisplayOptions {
@@ -78,9 +80,7 @@ impl GenericBootTarget {
                 .unwrap_or(cstr16!("failed to parse").to_owned()),
         }
     }
-}
 
-impl Boot for GenericBootTarget {
     fn boot(&self, handle: uefi::Handle, dm: &DiskManager) -> Result<(), AppError> {
         let pathref = PathReference::parse(self.executable.to_string().as_str())?;
         let img_path = dm.resolve_path(&pathref)?;

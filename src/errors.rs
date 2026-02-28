@@ -24,3 +24,9 @@ pub enum AppError {
     #[error("NotImplemented: {0}")]
     NotImplemented(&'static str),
 }
+
+impl From<uefi::Status> for AppError {
+    fn from(status: uefi::Status) -> Self {
+        AppError::Uefi(uefi::Error::new(status, ()))
+    }
+}

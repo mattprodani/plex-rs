@@ -23,8 +23,12 @@ pub struct IsoBootTarget {
     pub options: String,
 }
 
-impl crate::bootables::Boot for IsoBootTarget {
-    fn boot(&self, handle: uefi::Handle, _dm: &crate::path::DiskManager) -> Result<(), AppError> {
+impl IsoBootTarget {
+    pub fn boot(
+        &self,
+        handle: uefi::Handle,
+        _dm: &crate::path::DiskManager,
+    ) -> Result<(), AppError> {
         use iso9660::io::Read;
         let fs_proto: ScopedProtocol<SimpleFileSystem> =
             uefi::boot::get_image_file_system(uefi::boot::image_handle())?;
@@ -86,14 +90,12 @@ impl crate::bootables::Boot for IsoBootTarget {
 
         Ok(())
     }
-    fn display_options(&self) -> crate::bootables::DisplayOptions {
+    pub fn display_options(&self) -> crate::bootables::DisplayOptions {
         DisplayOptions {
             label: alloc::format!("ISO loadable {}", self.label),
         }
     }
-}
 
-impl IsoBootTarget {
     fn find_executable(&self) -> Result<&str, AppError> {
         self.executable.as_deref().ok_or(AppError::NotImplemented(
             "Please configure executable path.",

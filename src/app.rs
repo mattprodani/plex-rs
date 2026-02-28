@@ -1,6 +1,7 @@
+use crate::AppError;
+use crate::bootables::DisplayOptions;
 use crate::display::GopDisplay;
 use crate::path::DiskManager;
-use crate::AppError;
 use uefi::proto::console::text::Input;
 
 /// Outcome for a blocking app run.
@@ -28,4 +29,10 @@ pub struct AppCtx<'a> {
 /// Blocking app entry point.
 pub trait App {
     fn run(&mut self, ctx: &mut AppCtx) -> AppResult;
+}
+
+/// A trait that defines an App that can be drawn as an entry
+/// in the boot menu.
+pub trait DisplayEntry {
+    fn display_options(&self) -> DisplayOptions;
 }
