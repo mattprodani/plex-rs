@@ -2,6 +2,7 @@
 #![no_std]
 extern crate alloc;
 
+mod app;
 mod boot_menu;
 mod bootables;
 mod config;
