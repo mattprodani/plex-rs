@@ -21,3 +21,5 @@ default = ["iso", "global_allocator", "panic_handler"]
 panic_handler = ["uefi/panic_handler"]
 global_allocator = ["uefi/global_allocator"]
 iso = ["dep:iso9660"]
+mocha = []
+
