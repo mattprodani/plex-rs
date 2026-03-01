@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 embedded-graphics = "0.8.1"
 embedded-graphics-core = "0.4.0"
-iso9660 = { version = "0.1.1", path = "../iso9660-no-std-rs", optional = true, default-features = false, features = ["joliet"], package = "iso9660-no-std"}
+iso9660 = { version = "0.1.2",  optional = true, default-features = false, features = ["joliet"], package = "iso9660-no-std"}
 log = "0.4.29"
 serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 thiserror-no-std = "2.0.2"
