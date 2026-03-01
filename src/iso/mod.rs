@@ -1,4 +1,8 @@
-//! Very WIP.
+//! ISO 9660 booting support.
+//!
+//! Provides the functionality required to mount and boot from ISO files
+//! directly from the boot partition. Includes an implementation of the UEFI
+//! `SimpleFileSystem` protocol to access files within the ISO image.
 
 use alloc::{borrow::ToOwned, string::String};
 use uefi::{
@@ -12,8 +16,13 @@ pub mod iso_device_path;
 pub mod iso_file;
 pub mod iso_fs;
 
+/// An ISO file boot target.
+///
+/// Contains information required to open an ISO file, present it as a UEFI
+/// SimpleFileSystem, and execute an EFI binary found within.
 #[derive(Debug)]
 pub struct IsoBootTarget {
+    /// Display label for the boot menu.
     pub label: String,
     /// Path to the ISO, must be in the boot partition.
     pub iso_path: String,
@@ -24,6 +33,7 @@ pub struct IsoBootTarget {
 }
 
 impl IsoBootTarget {
+    /// Boot the configured ISO target by mounting it and executing the entry point.
     pub fn boot(
         &self,
         handle: uefi::Handle,
@@ -90,6 +100,7 @@ impl IsoBootTarget {
 
         Ok(())
     }
+    /// Generates display options for this boot target.
     pub fn display_options(&self) -> DisplayOptions {
         DisplayOptions {
             label: alloc::format!("ISO loadable {}", self.label),

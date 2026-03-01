@@ -1,3 +1,8 @@
+//! Boot menu interface.
+//!
+//! Renders the list of configured boot targets and handles user input
+//! to select and boot one.
+
 use embedded_graphics::{
     mono_font::{MonoTextStyle, ascii::FONT_9X15},
     pixelcolor::Rgb888,
@@ -14,16 +19,18 @@ use crate::{
     ui::overlay::ErrorOverlay,
 };
 
+/// The main boot menu interface for displaying and selecting boot targets.
 /// Very simple BootMenu that displays listings, handles keyboard input.
 pub struct BootMenu<'a, T>
 where
-    T: App,
+    T: App + DisplayEntry,
 {
     targets: &'a mut [T],
     selected: usize,
 }
 
 impl<'a, T: App + DisplayEntry> BootMenu<'a, T> {
+    /// Creates a new boot menu to manage the provided list of targets.
     pub fn new(targets: &'a mut [T]) -> Self {
         Self {
             targets,

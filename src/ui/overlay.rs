@@ -1,3 +1,8 @@
+//! UI overlays for displaying messages and errors.
+//!
+//! Provides reusable graphical overlays that can be drawn on top of
+//! the current screen, such as error dialogs.
+
 use crate::AppError;
 use crate::core::app::{App, AppCtx, AppResult};
 use alloc::string::{String, ToString as _};
@@ -11,11 +16,14 @@ use embedded_graphics::{
 };
 use uefi::proto::console::text::{Key, ScanCode};
 
+/// An error overlay that displays an application error and waits for the user
+/// to acknowledge it before dismissing.
 pub struct ErrorOverlay<'a> {
     error: &'a AppError,
 }
 
 impl<'a> ErrorOverlay<'a> {
+    /// Creates a new error overlay.
     pub fn new(error: &'a AppError) -> Self {
         Self { error }
     }

@@ -1,5 +1,7 @@
 # plex
 
+ever thought about putting put a `config.toml` file in your EFI partition? I hope not, but if you do, this boot manager is for you.
+
 Plex is a pure Rust GUI UEFI bootloader designed for managing multi-boot systems built for fun and daily personal use.
 I spent too much time trying to configure Refind to my liking and thought I'd start working on something else for fun.
 I will consider this project "complete" once I have replaced my boot manager with `plex` and begin daily driving it.

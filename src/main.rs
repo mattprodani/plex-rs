@@ -1,5 +1,12 @@
 #![no_main]
 #![no_std]
+
+//! The main entry point for the Plex UEFI bootloader.
+//!
+//! Initializes UEFI services, loads the configuration from disk,
+//! sets up graphics and input protocols, and launches the graphical
+//! boot menu.
+
 extern crate alloc;
 use log::info;
 use plex::config::Config;

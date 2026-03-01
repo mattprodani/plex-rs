@@ -1,9 +1,10 @@
 use alloc::boxed::Box;
+use uefi::Identify;
 use uefi::boot::ScopedProtocol;
 use uefi::cstr16;
 use uefi::proto::device_path::DevicePath;
-use uefi::Identify;
 
+/// A custom UEFI device path node to represent our virtual ISO device.
 #[repr(C, packed)]
 pub struct IsoDevicePath {
     // Vendor node: type(1) + subtype(1) + length(2) + GUID(16) = 20 bytes
@@ -18,6 +19,7 @@ pub struct IsoDevicePath {
 }
 
 impl IsoDevicePath {
+    /// Constructs a new generic virtual ISO device path.
     pub fn new() -> Self {
         const ISO_VENDOR_GUID: uefi::Guid = uefi::Guid::from_bytes([
             0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc,
@@ -50,6 +52,8 @@ fn install_iso_device_path(handle: uefi::Handle) -> uefi::Result<()> {
     Ok(())
 }
 
+/// Installs the custom `IsoDevicePath` onto a handle and returns a scoped
+/// open protocol to it.
 pub fn install_and_get_iso_device_path(
     handle: uefi::Handle,
 ) -> uefi::Result<alloc::boxed::Box<ScopedProtocol<DevicePath>>> {

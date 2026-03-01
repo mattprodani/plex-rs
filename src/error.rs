@@ -1,4 +1,10 @@
+//! Application-wide error types.
+//!
+//! Centralized error definitions for handling various failure conditions
+//! such as UEFI errors, file system errors, and invalid configurations.
+
 #[derive(Debug, thiserror_no_std::Error)]
+/// The primary error type for the application.
 pub enum AppError {
     #[error(transparent)]
     Uefi(#[from] uefi::Error),

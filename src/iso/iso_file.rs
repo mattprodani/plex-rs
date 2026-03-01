@@ -1,8 +1,11 @@
 //! embedded_io trait implementations over the iso buffer.
 //! An in-memory implementation
 
+/// Represents an in-memory loaded file to provide I/O trait implementations.
 pub struct IsoFile {
+    /// In-memory file buffer.
     pub data: alloc::vec::Vec<u8>,
+    /// The current seek position.
     pub seek: u64,
 }
 

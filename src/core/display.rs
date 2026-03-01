@@ -6,6 +6,10 @@ use alloc::vec::Vec;
 use embedded_graphics::{pixelcolor::Rgb888, prelude::*};
 use uefi::proto::console::gop::{BltOp, BltPixel, BltRegion, GraphicsOutput};
 
+/// An `embedded-graphics` draw target using the UEFI Graphics Output Protocol (Gop).
+///
+/// This maintains an internal buffer where drawing operations happen. To display
+/// the drawn image, you must call `flush()` which blits the entire buffer to the screen.
 pub struct GopDisplay<'a> {
     width: usize,
     height: usize,

@@ -27,6 +27,7 @@ pub struct PathReference {
     pub path: String,
 }
 
+/// A reference to a specific partition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PartitionReference {
     /// The partition where the bootloader EFI executable was loaded from
@@ -162,6 +163,7 @@ impl PartitionReference {
     }
 }
 
+/// Errors that can occur when parsing a `PathReference`.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror_no_std::Error)]
 pub enum PathRefParseError {
     /// No `:` separator found between resource and path
@@ -302,8 +304,10 @@ pub struct Partition {
     #[allow(dead_code)]
     pub is_system: bool,
 
+    /// Whether this is the partition from which the bootloader was launched.
     pub is_boot: bool,
 
+    /// Optional path to an ISO file within this partition, if treating an ISO as a partition.
     #[cfg(feature = "iso")]
     pub iso_path: Option<String>,
 }
@@ -329,6 +333,7 @@ impl PartitionReference {
     }
 }
 
+/// Convenience function to safely open a UEFI protocol on a handle.
 pub fn open_protocol_get<P: ProtocolPointer + ?Sized>(
     handle: Handle,
 ) -> Result<uefi::boot::ScopedProtocol<P>, uefi::Error> {

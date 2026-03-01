@@ -1,3 +1,8 @@
+//! Configuration management for Plex.
+//!
+//! Provides structures and functions to parse the `plex.toml` configuration file
+//! and convert it into boot targets that the application can execute.
+
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::Deserialize;
@@ -6,9 +11,11 @@ use crate::core::bootables::{BootTarget, GenericBootTarget};
 #[cfg(feature = "iso")]
 use crate::iso::IsoBootTarget;
 
+/// Represents a boot target configuration entry in `plex.toml`.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum TargetConfig {
+    /// A generic UEFI executable boot target.
     Generic {
         /// Display label for the boot menu
         label: String,
@@ -19,6 +26,7 @@ pub enum TargetConfig {
         options: String,
     },
 
+    /// A boot target representing a bootable ISO file.
     #[cfg(feature = "iso")]
     Iso {
         /// Display label for the boot menu
@@ -115,12 +123,18 @@ fn read_file_to_string(path: &str) -> Result<String, ConfigError> {
     String::from_utf8(buf).map_err(|_| ConfigError::EncodingError)
 }
 
+/// Errors that can occur when loading or parsing the configuration.
 #[derive(Debug)]
 pub enum ConfigError {
+    /// The specified path could not be converted to a valid UEFI path.
     InvalidPath,
+    /// The configuration file was not found on the filesystem.
     FileNotFound,
+    /// An error occurred while accessing the filesystem.
     FsError,
+    /// The file contents could not be decoded as UTF-8.
     EncodingError,
+    /// The file contents could not be parsed as valid TOML.
     ParseError,
 }
 

@@ -1,3 +1,8 @@
+//! Abstractions for different types of boot targets.
+//!
+//! Provides the generic definitions for boot targets (e.g., standard EFI executables
+//! and ISO images) and how they are displayed and executed within the application.
+
 use crate::core::app::AppResult;
 use crate::core::app::{App, AppCtx, DisplayEntry};
 use crate::error::AppError;
@@ -11,8 +16,11 @@ use uefi::proto::device_path::PoolDevicePath;
 use uefi::proto::loaded_image::LoadedImage;
 
 #[derive(Debug)]
+/// Represents any bootable target that can be executed by the bootloader.
 pub enum BootTarget {
+    /// A generic EFI executable boot target.
     Generic(GenericBootTarget),
+    /// A boot target representing a bootable ISO file.
     #[cfg(feature = "iso")]
     Iso(crate::iso::IsoBootTarget),
 }
@@ -48,7 +56,9 @@ impl DisplayEntry for BootTarget {
     }
 }
 
+/// Options for rendering a boot entry in the user interface.
 pub struct DisplayOptions {
+    /// The text label to display for this entry.
     pub label: String,
 }
 
@@ -68,6 +78,7 @@ pub struct GenericBootTarget {
 }
 
 impl GenericBootTarget {
+    /// Creates a new `GenericBootTarget` from the provided label, executable path, and options.
     pub fn new(
         label: impl AsRef<str>,
         executable: impl AsRef<str>,

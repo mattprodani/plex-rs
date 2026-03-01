@@ -32,11 +32,13 @@ pub struct AppCtx<'a> {
 
 /// Blocking app entry point.
 pub trait App {
+    /// Executes the application logic, taking in system context resources.
     fn run(&mut self, ctx: &mut AppCtx) -> AppResult;
 }
 
 /// A trait that defines an App that can be drawn as an entry
 /// in the boot menu.
 pub trait DisplayEntry {
+    /// Returns the options used to display this entry on the screen.
     fn display_options(&self) -> DisplayOptions;
 }
