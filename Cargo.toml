@@ -1,3 +1,6 @@
+[workspace]
+members = ["plex-quotes"]
+
 [package]
 name = "plex-boot"
 version = "0.1.0"
@@ -15,8 +18,12 @@ thiserror-no-std = "2.0.2"
 toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
 uefi = { version = "0.36.1", default-features = false, features = ["alloc", "logger", "panic_handler"] }
 uefi-raw = "0.13.0"
+plex-quotes = { path = "plex-quotes" }
 
 [features]
-default = ["iso", "global_allocator"]
+default = ["iso", "global_allocator", "mocha", "wii"]
 global_allocator = ["uefi/global_allocator"]
 iso = ["dep:iso9660"]
+mocha = []
+wii = []
+

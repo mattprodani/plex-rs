@@ -72,6 +72,9 @@ impl TargetConfig {
 /// Top-level configuration structure
 #[derive(Debug, Deserialize)]
 pub struct Config {
+    /// The global UI theme
+    #[serde(default)]
+    pub theme: crate::ui::theme::Theme,
     /// List of boot targets
     pub boot_targets: Vec<TargetConfig>,
 }

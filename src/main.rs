@@ -41,6 +41,8 @@ fn main() -> Status {
 
     let handle = boot::image_handle();
     let disk_manager = DiskManager::new(handle).unwrap();
+
+    let theme = config.theme;
     let mut boot_targets = config.into_boot_targets();
 
     let gop_handle = boot::get_handle_for_protocol::<GraphicsOutput>().unwrap();
@@ -56,9 +58,10 @@ fn main() -> Status {
         disk_manager: &disk_manager,
         handle,
     };
-    let mut menu = ui::boot_menu::BootMenu::<BootTarget>::new(boot_targets.as_mut_slice());
+
+    let mut menu = ui::boot_menu::BootMenu::<BootTarget>::new(boot_targets.as_mut_slice(), theme);
     if let AppResult::Error(ref err) = menu.run(&mut app_ctx) {
-        let mut overlay = ui::overlay::ErrorOverlay::new(err);
+        let mut overlay = ui::overlay::ErrorOverlay::new(err, theme);
         let _ = overlay.run(&mut app_ctx);
     }
 
