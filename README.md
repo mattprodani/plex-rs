@@ -42,3 +42,13 @@ Build for target {arch}-unknown-uefi. You'll figure out the rest.
 ```
   cargo build --target x86_64-unknown-uefi
 ```
+
+## Development
+
+For testing, we need to disable the uefi-rs `panic_handler` feature, as
+it conflicts with the `std` one set by the test harness. Use `just test` for
+simple testing. We also need to set the target to the one for your system.
+
+```
+  cargo test --target x86_64-unknown-linux-gnu --lib --no-default features
+```

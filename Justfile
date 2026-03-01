@@ -2,6 +2,9 @@ alias b := build
 
 all: build cp run
 
+test:
+  cargo test --target x86_64-unknown-linux-gnu --no-default-features --lib
+
 build:
   cargo build --target x86_64-unknown-uefi
 
