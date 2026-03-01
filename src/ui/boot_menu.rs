@@ -3,81 +3,54 @@
 //! Renders the list of configured boot targets and handles user input
 //! to select and boot one.
 
-use embedded_graphics::{
-    mono_font::{MonoTextStyle, ascii::FONT_9X15},
-    pixelcolor::Rgb888,
-    prelude::*,
-    primitives::{PrimitiveStyle, Rectangle},
-    text::Text,
-};
 use uefi::proto::console::text::{Key, ScanCode};
 
 use crate::{
     AppError,
     core::app::{App, AppCtx, AppResult, DisplayEntry},
-    core::display::GopDisplay,
     ui::overlay::ErrorOverlay,
+    ui::theme::Theme,
 };
 
 /// The main boot menu interface for displaying and selecting boot targets.
-/// Very simple BootMenu that displays listings, handles keyboard input.
 pub struct BootMenu<'a, T>
 where
     T: App + DisplayEntry,
 {
     targets: &'a mut [T],
     selected: usize,
+    theme: Theme,
 }
 
 impl<'a, T: App + DisplayEntry> BootMenu<'a, T> {
     /// Creates a new boot menu to manage the provided list of targets.
-    pub fn new(targets: &'a mut [T]) -> Self {
+    pub fn new(targets: &'a mut [T], theme: Theme) -> Self {
         Self {
             targets,
             selected: 0,
+            theme,
         }
     }
 
+    /// Exposes the list of boot targets.
+    pub fn targets(&self) -> &[T] {
+        self.targets
+    }
+
+    /// Returns the currently selected index.
+    pub fn selected(&self) -> usize {
+        self.selected
+    }
+
     /// Draws boot options to the buff.
-    pub fn draw(&mut self, display: &mut GopDisplay) -> Result<(), AppError> {
-        display.clear(Rgb888::new(0, 0, 0));
-
-        let text_style = MonoTextStyle::new(&FONT_9X15, Rgb888::WHITE);
-        let selected_text_style = MonoTextStyle::new(&FONT_9X15, Rgb888::BLACK);
-
-        let start_y = 100;
-        let line_height = 25;
-
-        for (i, target) in self.targets.iter().enumerate() {
-            let y = start_y + (i * line_height) as i32;
-            let position = Point::new(50, y);
-            let display_opts = target.display_options();
-
-            if i == self.selected {
-                // draw white bckg to indicate selected
-                let rect = Rectangle::new(Point::new(40, y - 15), Size::new(400, 20));
-                rect.into_styled(PrimitiveStyle::with_fill(Rgb888::WHITE))
-                    .draw(display)
-                    .ok();
-            }
-
-            let this_text_style = if i == self.selected {
-                selected_text_style
-            } else {
-                text_style
-            };
-            Text::new(display_opts.label.as_str(), position, this_text_style)
-                .draw(display)
-                .ok();
-        }
-        display.flush()?;
-        Ok(())
+    pub fn draw(&mut self, ctx: &mut AppCtx) -> Result<(), AppError> {
+        self.theme.draw_boot_menu(ctx, self)
     }
 
     /// Handle arrow key input and return the selected index when Enter is pressed.
     pub fn wait_for_selection(&mut self, ctx: &mut AppCtx) -> Result<usize, AppError> {
         loop {
-            self.draw(ctx.display)?;
+            self.draw(ctx)?;
 
             // unchecked because Option::<NonNull>::None.unwrap_unchecked() == 0
             // due to the niche optimization with valid size and alignment.
@@ -92,11 +65,17 @@ impl<'a, T: App + DisplayEntry> BootMenu<'a, T> {
                     Key::Special(ScanCode::UP) => {
                         if self.selected > 0 {
                             self.selected -= 1;
+                        } else {
+                            // wrap around
+                            self.selected = self.targets.len().saturating_sub(1);
                         }
                     }
                     Key::Special(ScanCode::DOWN) => {
-                        if self.selected < self.targets.len() - 1 {
+                        if self.selected < self.targets.len().saturating_sub(1) {
                             self.selected += 1;
+                        } else {
+                            // wrap around
+                            self.selected = 0;
                         }
                     }
                     Key::Printable(c) if c == '\r' || c == '\n' => {
@@ -134,7 +113,7 @@ impl<'a, T: App + DisplayEntry> App for BootMenu<'a, T> {
                     return result;
                 }
                 AppResult::Error(ref err) => {
-                    let mut overlay = ErrorOverlay::new(err);
+                    let mut overlay = ErrorOverlay::new(err, self.theme);
                     if let AppResult::Error(_) = overlay.run(ctx) {
                         log::error!("the error overlay errored, oops.");
                         return result;
