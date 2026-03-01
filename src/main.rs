@@ -9,12 +9,12 @@
 
 extern crate alloc;
 use log::info;
-use plex::config::Config;
-use plex::core::app::{App, AppCtx, AppResult};
-use plex::core::bootables::BootTarget;
-use plex::core::display::GopDisplay;
-use plex::path::DiskManager;
-use plex::ui;
+use plex_boot::config::Config;
+use plex_boot::core::app::{App, AppCtx, AppResult};
+use plex_boot::core::bootables::BootTarget;
+use plex_boot::core::display::GopDisplay;
+use plex_boot::path::DiskManager;
+use plex_boot::ui;
 use uefi::{
     prelude::*,
     proto::console::{gop::GraphicsOutput, text::Input},

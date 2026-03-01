@@ -1,7 +1,9 @@
 [package]
-name = "plex"
+name = "plex-boot"
 version = "0.1.0"
+license = "MIT"
 edition = "2024"
+description = "experimental boot manager with live-loading ISO support and more cool things"
 
 [dependencies]
 embedded-graphics = "0.8.1"

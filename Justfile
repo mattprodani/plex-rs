@@ -15,4 +15,4 @@ run:
     -m 1G
 
 cp:
-  cp ./target/x86_64-unknown-uefi/debug/plex.efi ./esp/efi/boot/bootx64.efi
+  cp ./target/x86_64-unknown-uefi/debug/plex-boot.efi ./esp/efi/boot/bootx64.efi
