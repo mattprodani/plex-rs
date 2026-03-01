@@ -6,12 +6,12 @@ use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use log::{error, info};
+use log::error;
 use uefi::boot::OpenProtocolParams;
+use uefi::proto::ProtocolPointer;
 use uefi::proto::device_path::{DevicePath, PoolDevicePath};
 use uefi::proto::loaded_image::LoadedImage;
 use uefi::proto::media::partition::{GptPartitionEntry, MbrPartitionRecord};
-use uefi::proto::ProtocolPointer;
 use uefi::{CString16, Handle, Identify};
 
 /// URI-style path reference for locating files across partitions
@@ -240,8 +240,6 @@ impl DiskManager {
                 }
             }
         }
-
-        info!("{:#?}", partitions);
 
         Ok(DiskManager { partitions })
     }

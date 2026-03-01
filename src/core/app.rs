@@ -1,6 +1,6 @@
 use crate::AppError;
-use crate::bootables::DisplayOptions;
-use crate::display::GopDisplay;
+use crate::core::bootables::DisplayOptions;
+use crate::core::display::GopDisplay;
 use crate::path::DiskManager;
 use uefi::proto::console::text::Input;
 

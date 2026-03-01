@@ -1,30 +1,16 @@
 #![no_main]
 #![no_std]
 extern crate alloc;
-
-mod app;
-mod boot_menu;
-mod bootables;
-mod config;
-mod display;
-mod errors;
-#[cfg(feature = "iso")]
-mod iso;
-mod overlay;
-mod path;
-
-pub use errors::AppError;
-
 use log::info;
+use plex::config::Config;
+use plex::core::app::{App, AppCtx, AppResult};
+use plex::core::bootables::BootTarget;
+use plex::core::display::GopDisplay;
+use plex::path::DiskManager;
+use plex::ui;
 use uefi::{
     prelude::*,
     proto::console::{gop::GraphicsOutput, text::Input},
-};
-
-use crate::display::GopDisplay;
-use crate::{
-    app::{App, AppCtx, AppResult},
-    overlay::ErrorOverlay,
 };
 
 #[entry]
@@ -32,9 +18,8 @@ fn main() -> Status {
     uefi::helpers::init().unwrap();
     info!("Initialized UEFI helpers successfully.");
 
-    // Load configuration from fixed path
     const CONFIG_PATH: &str = "\\plex.toml";
-    let config = match config::Config::load_from_file(CONFIG_PATH) {
+    let config = match Config::load_from_file(CONFIG_PATH) {
         Ok(cfg) => cfg,
         Err(e) => {
             log::error!("Failed to load config from {}: {:?}", CONFIG_PATH, e);
@@ -48,7 +33,7 @@ fn main() -> Status {
     );
 
     let handle = boot::image_handle();
-    let disk_manager = path::DiskManager::new(handle).unwrap();
+    let disk_manager = DiskManager::new(handle).unwrap();
     let mut boot_targets = config.into_boot_targets();
 
     let gop_handle = boot::get_handle_for_protocol::<GraphicsOutput>().unwrap();
@@ -64,9 +49,9 @@ fn main() -> Status {
         disk_manager: &disk_manager,
         handle,
     };
-    let mut menu = boot_menu::BootMenu::<bootables::BootTarget>::new(boot_targets.as_mut_slice());
+    let mut menu = ui::boot_menu::BootMenu::<BootTarget>::new(boot_targets.as_mut_slice());
     if let AppResult::Error(ref err) = menu.run(&mut app_ctx) {
-        let mut overlay = ErrorOverlay::new(err);
+        let mut overlay = ui::overlay::ErrorOverlay::new(err);
         let _ = overlay.run(&mut app_ctx);
     }
 

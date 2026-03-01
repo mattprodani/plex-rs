@@ -1,13 +1,14 @@
-use crate::app::{App, DisplayEntry};
-use crate::errors::AppError;
+use crate::core::app::AppResult;
+use crate::core::app::{App, AppCtx, DisplayEntry};
+use crate::error::AppError;
 use crate::path::{DiskManager, PathReference};
 use alloc::borrow::ToOwned as _;
 use alloc::string::{String, ToString};
+use uefi::CString16;
 use uefi::boot::LoadImageSource;
 use uefi::cstr16;
 use uefi::proto::device_path::PoolDevicePath;
 use uefi::proto::loaded_image::LoadedImage;
-use uefi::CString16;
 
 #[derive(Debug)]
 pub enum BootTarget {
@@ -29,10 +30,10 @@ impl BootTarget {
 }
 
 impl App for BootTarget {
-    fn run(&mut self, ctx: &mut crate::app::AppCtx) -> crate::app::AppResult {
+    fn run(&mut self, ctx: &mut AppCtx) -> AppResult {
         match self.boot(ctx.handle, ctx.disk_manager) {
-            Ok(_) => crate::app::AppResult::Booted,
-            Err(e) => crate::app::AppResult::Error(e),
+            Ok(_) => AppResult::Booted,
+            Err(e) => AppResult::Error(e),
         }
     }
 }

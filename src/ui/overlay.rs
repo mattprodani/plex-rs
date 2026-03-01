@@ -1,7 +1,5 @@
 use crate::AppError;
-use crate::app::App;
-use crate::app::AppCtx;
-use crate::app::AppResult;
+use crate::core::app::{App, AppCtx, AppResult};
 use alloc::string::{String, ToString as _};
 use alloc::vec::Vec;
 use embedded_graphics::{

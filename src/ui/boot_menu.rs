@@ -9,9 +9,9 @@ use uefi::proto::console::text::{Key, ScanCode};
 
 use crate::{
     AppError,
-    app::{App, AppCtx, AppResult, DisplayEntry},
-    display::GopDisplay,
-    overlay::ErrorOverlay,
+    core::app::{App, AppCtx, AppResult, DisplayEntry},
+    core::display::GopDisplay,
+    ui::overlay::ErrorOverlay,
 };
 
 /// Very simple BootMenu that displays listings, handles keyboard input.

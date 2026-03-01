@@ -2,12 +2,12 @@
 
 use alloc::{borrow::ToOwned, string::String};
 use uefi::{
+    CString16,
     boot::ScopedProtocol,
     proto::{loaded_image::LoadedImage, media::fs::SimpleFileSystem},
-    CString16,
 };
 
-use crate::{bootables::DisplayOptions, errors::AppError};
+use crate::{core::bootables::DisplayOptions, error::AppError};
 pub mod iso_device_path;
 pub mod iso_file;
 pub mod iso_fs;
@@ -90,7 +90,7 @@ impl IsoBootTarget {
 
         Ok(())
     }
-    pub fn display_options(&self) -> crate::bootables::DisplayOptions {
+    pub fn display_options(&self) -> DisplayOptions {
         DisplayOptions {
             label: alloc::format!("ISO loadable {}", self.label),
         }

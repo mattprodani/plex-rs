@@ -9,7 +9,6 @@ pub enum AppError {
     #[cfg(feature = "iso")]
     #[error(transparent)]
     Iso(#[from] iso9660::ISOError<iso9660::io::ErrorKind>),
-    // we should merge this with the above
     #[cfg(feature = "iso")]
     #[error(transparent)]
     IsoIo(#[from] iso9660::io::ErrorKind),
