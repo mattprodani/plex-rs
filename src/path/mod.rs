@@ -8,10 +8,10 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use log::error;
 use uefi::boot::OpenProtocolParams;
-use uefi::proto::ProtocolPointer;
 use uefi::proto::device_path::{DevicePath, PoolDevicePath};
 use uefi::proto::loaded_image::LoadedImage;
 use uefi::proto::media::partition::{GptPartitionEntry, MbrPartitionRecord};
+use uefi::proto::ProtocolPointer;
 use uefi::{CString16, Handle, Identify};
 
 /// URI-style path reference for locating files across partitions
@@ -60,14 +60,6 @@ pub enum PartitionReference {
     ///
     /// Syntax: `guid(XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)/path`
     Guid(uefi::Guid),
-
-    /// Drive is an ISO existing in the partition that the EFI image was loaded
-    /// from. Kernel/executable is a path within this ISO filesystem that is provided
-    /// to the kernel through the BLOCK_IO and SimpleFileSystem UEFI Protocols.
-    ///
-    /// Syntax: `iso(/uwuntu.iso)/vmlinuz`
-    #[cfg(feature = "iso")]
-    Iso(String),
 }
 
 impl PathReference {
@@ -81,7 +73,6 @@ impl PathReference {
     /// PathReference::parse("boot():/vmlinuz-linux")?;
     /// PathReference::parse("boot():/EFI/BOOT/BOOTX64.EFI")?;
     /// PathReference::parse("guid(550e8400-e29b-41d4-a716-446655440000)/vmlinuz")?;
-    /// PathReference::parse("iso(myfile.iso)/vmlinuz")?; // with feature 'iso'
     /// ```
     ///
     /// # Errors
@@ -138,8 +129,6 @@ impl PartitionReference {
             "guid" => Ok(PartitionReference::Guid(
                 uefi::Guid::from_str(arg).map_err(|_| PathRefParseError::InvalidGuid)?,
             )),
-            #[cfg(feature = "iso")]
-            "iso" => Ok(PartitionReference::Iso(arg.to_string())),
             _ => Err(PathRefParseError::UnknownResource(scheme.to_string())),
         }
     }
@@ -154,10 +143,6 @@ impl PartitionReference {
             PartitionReference::Boot => String::from("boot():"),
             PartitionReference::Guid(guid) => {
                 format!("guid({}):", guid)
-            }
-            #[cfg(feature = "iso")]
-            PartitionReference::Iso(iso) => {
-                format!("iso({}):", iso)
             }
         }
     }
@@ -233,8 +218,6 @@ impl DiskManager {
                         gpt_partition_info: partition_info.gpt_partition_entry().cloned(),
                         is_system: partition_info.is_system(),
                         is_boot: boot_device_handle == Some(*handle),
-                        #[cfg(feature = "iso")]
-                        iso_path: None,
                     });
                 }
                 Err(e) => {
@@ -306,10 +289,6 @@ pub struct Partition {
 
     /// Whether this is the partition from which the bootloader was launched.
     pub is_boot: bool,
-
-    /// Optional path to an ISO file within this partition, if treating an ISO as a partition.
-    #[cfg(feature = "iso")]
-    pub iso_path: Option<String>,
 }
 
 impl Partition {
@@ -327,8 +306,6 @@ impl PartitionReference {
         match &self {
             PartitionReference::Boot => p.is_boot,
             PartitionReference::Guid(id) => p.guid().as_ref() == Some(id),
-            #[cfg(feature = "iso")]
-            PartitionReference::Iso(iso) => p.iso_path.as_ref() == Some(iso),
         }
     }
 }

@@ -8,15 +8,12 @@
 //! # Features
 //! - Pure Rust `no_std` implementation.
 //! - TOML-based configuration for defining boot entries.
-//! - Support for booting ISO files (with the `iso` feature).
 //! - Graphical user interface using UEFI GOP (Graphics Output Protocol).
 
 extern crate alloc;
 
 pub mod config;
 pub mod error;
-#[cfg(feature = "iso")]
-mod iso;
 pub use error::AppError;
 pub mod core;
 pub mod path;
