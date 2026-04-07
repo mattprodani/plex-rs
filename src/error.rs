@@ -12,12 +12,6 @@ pub enum AppError {
     UefiFs(#[from] uefi::fs::Error),
     #[error(transparent)]
     FromStrError(#[from] uefi::data_types::FromStrError),
-    #[cfg(feature = "iso")]
-    #[error(transparent)]
-    Iso(#[from] iso9660::ISOError<iso9660::io::ErrorKind>),
-    #[cfg(feature = "iso")]
-    #[error(transparent)]
-    IsoIo(#[from] iso9660::io::ErrorKind),
     #[error(transparent)]
     PathRef(#[from] crate::path::PathRefParseError),
     #[error(transparent)]

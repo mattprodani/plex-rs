@@ -8,8 +8,6 @@ use alloc::vec::Vec;
 use serde::Deserialize;
 
 use crate::core::bootables::{BootTarget, GenericBootTarget};
-#[cfg(feature = "iso")]
-use crate::iso::IsoBootTarget;
 
 /// Represents a boot target configuration entry in `plex.toml`.
 #[derive(Debug, Deserialize)]
@@ -25,24 +23,6 @@ pub enum TargetConfig {
         #[serde(default)]
         options: String,
     },
-
-    /// A boot target representing a bootable ISO file.
-    #[cfg(feature = "iso")]
-    Iso {
-        /// Display label for the boot menu
-        label: String,
-
-        /// Path within the ISO filesystem to the EFI executable.
-        iso_path: String,
-
-        /// Path within the ISO filesystem to the EFI executable.
-        /// `None` to search for executable according to the EFI specification rules.
-        executable: Option<String>,
-
-        /// Command line options to pass to the executable
-        #[serde(default)]
-        options: String,
-    },
 }
 
 impl TargetConfig {
@@ -53,18 +33,6 @@ impl TargetConfig {
                 executable,
                 options,
             } => BootTarget::Generic(GenericBootTarget::new(label, executable, options)),
-            #[cfg(feature = "iso")]
-            TargetConfig::Iso {
-                label,
-                iso_path,
-                executable,
-                options,
-            } => BootTarget::Iso(IsoBootTarget {
-                label,
-                iso_path,
-                executable,
-                options,
-            }),
         }
     }
 }
@@ -105,8 +73,8 @@ impl Config {
 
 /// Read a file from the UEFI filesystem into a String
 fn read_file_to_string(path: &str) -> Result<String, ConfigError> {
-    use uefi::CString16;
     use uefi::fs::FileSystem;
+    use uefi::CString16;
 
     // Convert path to CString16
     let path_cstr = CString16::try_from(path).map_err(|_| ConfigError::InvalidPath)?;

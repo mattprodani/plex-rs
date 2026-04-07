@@ -1,14 +1,6 @@
 # Plex Bootloader Configuration
 # This file should be placed at \plex.toml on the EFI system partition
 
-# Boot from an ISO file
-[[boot_targets]]
-type = "iso"
-label = "Kali Linux"
-iso_path = "my_distro.iso"
-executable = "\\EFI\\arch\\vmlinuz-linux.efi"
-options = "root=/dev/sda2 rw initrd=\\EFI\\arch\\initramfs-linux.img"
-
 # Example boot target for Arch Linux
 [[boot_targets]]
 type = "generic"

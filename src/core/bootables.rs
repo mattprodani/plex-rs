@@ -1,7 +1,7 @@
 //! Abstractions for different types of boot targets.
 //!
-//! Provides the generic definitions for boot targets (e.g., standard EFI executables
-//! and ISO images) and how they are displayed and executed within the application.
+//! Provides the generic definitions for boot targets (e.g., standard EFI executables)
+//! and how they are displayed and executed within the application.
 
 use crate::core::app::AppResult;
 use crate::core::app::{App, AppCtx, DisplayEntry};
@@ -9,20 +9,17 @@ use crate::error::AppError;
 use crate::path::{DiskManager, PathReference};
 use alloc::borrow::ToOwned as _;
 use alloc::string::{String, ToString};
-use uefi::CString16;
 use uefi::boot::LoadImageSource;
 use uefi::cstr16;
 use uefi::proto::device_path::PoolDevicePath;
 use uefi::proto::loaded_image::LoadedImage;
+use uefi::CString16;
 
 #[derive(Debug)]
 /// Represents any bootable target that can be executed by the bootloader.
 pub enum BootTarget {
     /// A generic EFI executable boot target.
     Generic(GenericBootTarget),
-    /// A boot target representing a bootable ISO file.
-    #[cfg(feature = "iso")]
-    Iso(crate::iso::IsoBootTarget),
 }
 
 /// note: this is a two-way implementation, to allow decisions in the
@@ -31,8 +28,6 @@ impl BootTarget {
     fn boot(&self, handle: uefi::Handle, dm: &DiskManager) -> Result<(), AppError> {
         match self {
             BootTarget::Generic(target) => target.boot(handle, dm),
-            #[cfg(feature = "iso")]
-            BootTarget::Iso(target) => target.boot(handle, dm),
         }
     }
 }
@@ -50,8 +45,6 @@ impl DisplayEntry for BootTarget {
     fn display_options(&self) -> DisplayOptions {
         match self {
             BootTarget::Generic(target) => target.display_options(),
-            #[cfg(feature = "iso")]
-            BootTarget::Iso(target) => target.display_options(),
         }
     }
 }
