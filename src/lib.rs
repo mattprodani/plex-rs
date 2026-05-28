@@ -13,8 +13,10 @@
 extern crate alloc;
 
 pub mod config;
-pub mod error;
-pub use error::AppError;
 pub mod core;
+pub mod error;
+pub mod helpers;
 pub mod path;
 pub mod ui;
+
+pub use error::AppError;
