@@ -70,9 +70,10 @@ impl PathReference {
     ///
     /// # Examples
     /// ```
-    /// PathReference::parse("boot():/vmlinuz-linux")?;
-    /// PathReference::parse("boot():/EFI/BOOT/BOOTX64.EFI")?;
-    /// PathReference::parse("guid(550e8400-e29b-41d4-a716-446655440000)/vmlinuz")?;
+    /// use plex_boot::path::PathReference;
+    /// PathReference::parse("boot():/vmlinuz-linux").unwrap();
+    /// PathReference::parse("boot():/EFI/BOOT/BOOTX64.EFI").unwrap();
+    /// PathReference::parse("guid(550e8400-e29b-41d4-a716-446655440000):/vmlinuz").unwrap();
     /// ```
     ///
     /// # Errors
@@ -98,8 +99,9 @@ impl PathReference {
     ///
     /// # Example
     /// ```
-    /// let uri = path_ref.to_uri();
-    /// assert_eq!(uri, "boot():/vmlinuz");
+    /// use plex_boot::path::PathReference;
+    /// let uri = PathReference::parse("boot():/vmlinuz-linux").unwrap().to_uri();
+    /// assert_eq!(uri, "boot():/vmlinuz-linux");
     /// ```
     pub fn to_uri(&self) -> String {
         format!("{}{}", self.location.to_uri_prefix(), self.path)
@@ -111,8 +113,9 @@ impl PartitionReference {
     ///
     /// # Examples
     /// ```
-    /// PartitionReference::parse("boot")?;
-    /// PartitionReference::parse("guid:550e8400-e29b-41d4-a716-446655440000")?;
+    /// use plex_boot::path::PartitionReference;
+    /// PartitionReference::parse("boot()").unwrap();
+    /// PartitionReference::parse("guid(550e8400-e29b-41d4-a716-446655440000)").unwrap();
     /// ```
     pub fn parse(s: &str) -> Result<Self, PathRefParseError> {
         let Some(lparen) = s.find('(') else {
@@ -136,6 +139,7 @@ impl PartitionReference {
     ///
     /// # Example
     /// ```
+    /// use plex_boot::path::PartitionReference;
     /// assert_eq!(PartitionReference::Boot.to_uri_prefix(), "boot():");
     /// ```
     pub fn to_uri_prefix(&self) -> String {

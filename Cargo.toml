@@ -21,4 +21,7 @@ panic_handler = ["uefi/panic_handler"]
 global_allocator = ["uefi/global_allocator"]
 mocha = []
 
-
+[[bin]]
+name = "plex-boot"
+path = "src/main.rs"
+test = false
