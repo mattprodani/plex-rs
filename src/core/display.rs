@@ -1,6 +1,6 @@
-//! Module implementing embedded_graphics_core::DrawTarget
+//! Module implementing `embedded_graphics_core::DrawTarget`
 //! for the Rust UEFI crate. It is actually just a buffer,
-//! and the push to uefi is done via blit during flush().
+//! and the push to uefi is done via blit during `flush()`.
 use alloc::vec;
 use alloc::vec::Vec;
 use embedded_graphics::{pixelcolor::Rgb888, prelude::*};
@@ -30,6 +30,9 @@ impl<'a> GopDisplay<'a> {
     }
 
     /// Blit the entire buffer to the framebuffer.
+    ///
+    /// # Errors
+    /// Returns any error from the underlying GOP blit call.
     pub fn flush(&mut self) -> Result<(), uefi::Error> {
         self.gop.blt(BltOp::BufferToVideo {
             buffer: &self.buffer,
@@ -46,7 +49,7 @@ impl<'a> GopDisplay<'a> {
     }
 }
 
-impl<'a> DrawTarget for GopDisplay<'a> {
+impl DrawTarget for GopDisplay<'_> {
     type Color = Rgb888;
     type Error = core::convert::Infallible;
 
@@ -54,10 +57,13 @@ impl<'a> DrawTarget for GopDisplay<'a> {
     where
         I: IntoIterator<Item = Pixel<Self::Color>>,
     {
-        for Pixel(coord, color) in pixels.into_iter() {
+        for Pixel(coord, color) in pixels {
             // Bounds check - discard out of bounds pixels per DrawTarget requirements
             let (x, y) = match (coord.x, coord.y) {
-                (x, y) if x >= 0 && y >= 0 => (x as usize, y as usize),
+                (x, y) if x >= 0 && y >= 0 => (
+                    usize::try_from(x).unwrap_or(usize::MAX),
+                    usize::try_from(y).unwrap_or(usize::MAX),
+                ),
                 _ => continue,
             };
 
@@ -73,8 +79,11 @@ impl<'a> DrawTarget for GopDisplay<'a> {
     }
 }
 
-impl<'a> OriginDimensions for GopDisplay<'a> {
+impl OriginDimensions for GopDisplay<'_> {
     fn size(&self) -> Size {
-        Size::new(self.width as u32, self.height as u32)
+        Size::new(
+            u32::try_from(self.width).unwrap_or(u32::MAX),
+            u32::try_from(self.height).unwrap_or(u32::MAX),
+        )
     }
 }

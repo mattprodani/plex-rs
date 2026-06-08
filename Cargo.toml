@@ -4,11 +4,15 @@ version = "0.1.0"
 license = "MIT"
 edition = "2024"
 description = "experimental boot manager with more cool things"
+repository = "https://github.com/your-org/plex-boot"
+keywords = ["uefi", "boot", "bootloader", "efi", "embedded"]
+categories = ["embedded", "os"]
 
 [dependencies]
 embedded-graphics = "0.8.1"
 embedded-graphics-core = "0.4.0"
 log = "0.4.29"
+qemu-exit = { version = "3.0.2", optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 thiserror-no-std = "2.0.2"
 toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
@@ -22,6 +26,8 @@ default = ["global_allocator", "panic_handler"]
 panic_handler = []
 global_allocator = ["uefi/global_allocator"]
 mocha = []
+qemu = ["dep:qemu-exit"]
+wii = []
 
 [[bin]]
 name = "plex-boot"

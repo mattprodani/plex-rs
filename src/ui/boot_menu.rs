@@ -6,10 +6,10 @@
 use uefi::proto::console::text::{Key, ScanCode};
 
 use crate::{
-    AppError,
     core::app::{App, AppCtx, AppResult, DisplayEntry},
     ui::overlay::ErrorOverlay,
     ui::theme::Theme,
+    AppError,
 };
 
 /// The main boot menu interface for displaying and selecting boot targets.
@@ -24,7 +24,8 @@ where
 
 impl<'a, T: App + DisplayEntry> BootMenu<'a, T> {
     /// Creates a new boot menu to manage the provided list of targets.
-    pub fn new(targets: &'a mut [T], theme: Theme) -> Self {
+    #[must_use]
+    pub const fn new(targets: &'a mut [T], theme: Theme) -> Self {
         Self {
             targets,
             selected: 0,
@@ -33,21 +34,29 @@ impl<'a, T: App + DisplayEntry> BootMenu<'a, T> {
     }
 
     /// Exposes the list of boot targets.
-    pub fn targets(&self) -> &[T] {
+    #[must_use]
+    pub const fn targets(&self) -> &[T] {
         self.targets
     }
 
     /// Returns the currently selected index.
-    pub fn selected(&self) -> usize {
+    #[must_use]
+    pub const fn selected(&self) -> usize {
         self.selected
     }
 
     /// Draws boot options to the buff.
+    ///
+    /// # Errors
+    /// Returns any drawing error from the current theme.
     pub fn draw(&mut self, ctx: &mut AppCtx) -> Result<(), AppError> {
         self.theme.draw_boot_menu(ctx, self)
     }
 
     /// Handle arrow key input and return the selected index when Enter is pressed.
+    ///
+    /// # Errors
+    /// Returns any input or drawing error while interacting with the boot menu.
     pub fn wait_for_selection(&mut self, ctx: &mut AppCtx) -> Result<usize, AppError> {
         loop {
             self.draw(ctx)?;
@@ -88,7 +97,7 @@ impl<'a, T: App + DisplayEntry> BootMenu<'a, T> {
     }
 }
 
-impl<'a, T: App + DisplayEntry> App for BootMenu<'a, T> {
+impl<T: App + DisplayEntry> App for BootMenu<'_, T> {
     fn run(&mut self, ctx: &mut AppCtx) -> AppResult {
         loop {
             let selection = self.wait_for_selection(ctx);
@@ -106,7 +115,7 @@ impl<'a, T: App + DisplayEntry> App for BootMenu<'a, T> {
 
             match result {
                 AppResult::Done | AppResult::Yield => {
-                    log::info!("returning control flow back to boot menu loop")
+                    log::info!("returning control flow back to boot menu loop");
                 }
                 AppResult::Booted => {
                     log::info!("booted target successfully, exiting");

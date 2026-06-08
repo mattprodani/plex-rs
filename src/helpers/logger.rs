@@ -4,9 +4,9 @@ use core::fmt::Write;
 use core::sync::atomic::{AtomicBool, Ordering};
 use log::{Metadata, Record};
 use spin::Mutex;
-use uefi::CString16;
 use uefi::boot;
 use uefi::fs::FileSystem;
+use uefi::CString16;
 
 pub struct FileLogger {
     initialized: AtomicBool,
@@ -16,6 +16,7 @@ pub struct FileLogger {
 }
 
 impl FileLogger {
+    #[must_use]
     pub const fn new(path: &'static str) -> Self {
         Self {
             initialized: AtomicBool::new(false),
@@ -55,9 +56,8 @@ impl FileLogger {
     }
 
     fn flush_to_file(&self) {
-        let path = match CString16::try_from(self.path) {
-            Ok(path) => path,
-            Err(_) => return,
+        let Ok(path) = CString16::try_from(self.path) else {
+            return;
         };
         let contents: Vec<u8> = {
             let buf = self.buffer.lock();

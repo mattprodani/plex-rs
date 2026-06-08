@@ -10,6 +10,16 @@
 //! - TOML-based configuration for defining boot entries.
 //! - Graphical user interface using UEFI GOP (Graphics Output Protocol).
 
+#![deny(clippy::suspicious)]
+#![deny(clippy::style)]
+#![deny(clippy::complexity)]
+#![deny(clippy::perf)]
+#![deny(clippy::pedantic)]
+#![deny(clippy::nursery)]
+#![deny(clippy::cargo)]
+#![warn(clippy::todo)]
+#![allow(clippy::multiple_crate_versions)]
+
 extern crate alloc;
 
 pub mod config;

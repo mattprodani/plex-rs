@@ -1,5 +1,5 @@
 use embedded_graphics::{
-    mono_font::{MonoTextStyle, ascii::FONT_9X15},
+    mono_font::{ascii::FONT_9X15, MonoTextStyle},
     pixelcolor::Rgb888,
     prelude::*,
     primitives::{PrimitiveStyle, PrimitiveStyleBuilder, Rectangle},
@@ -7,15 +7,17 @@ use embedded_graphics::{
 };
 
 use crate::{
-    AppError,
     core::app::{App, AppCtx, DisplayEntry},
     ui::boot_menu::BootMenu,
     ui::theme::LineWrapper,
+    AppError,
 };
 
-pub fn draw_boot_menu<'a, T: App + DisplayEntry>(
+/// # Errors
+/// Returns any drawing error from the underlying display.
+pub fn draw_boot_menu<T: App + DisplayEntry>(
     ctx: &mut AppCtx,
-    menu: &BootMenu<'a, T>,
+    menu: &BootMenu<'_, T>,
 ) -> Result<(), AppError> {
     let display = &mut *ctx.display;
     display.clear(Rgb888::new(0, 0, 0));
@@ -28,7 +30,7 @@ pub fn draw_boot_menu<'a, T: App + DisplayEntry>(
 
     for (i, target) in menu.targets().iter().enumerate() {
         let display_opts = target.display_options();
-        let y = start_y + (i * line_height) as i32;
+        let y = start_y + i32::try_from(i * line_height).unwrap_or(i32::MAX);
         let position = Point::new(50, y);
 
         if i == menu.selected() {
@@ -51,20 +53,26 @@ pub fn draw_boot_menu<'a, T: App + DisplayEntry>(
 
     let size = display.size();
     let quote = "Hello, world!";
-    Text::new(quote, Point::new(50, size.height as i32 - 50), text_style)
-        .draw(display)
-        .ok();
+    Text::new(
+        quote,
+        Point::new(50, size.height.cast_signed() - 50),
+        text_style,
+    )
+    .draw(display)
+    .ok();
 
     display.flush()?;
     Ok(())
 }
 
+/// # Errors
+/// Returns any drawing error from the underlying display.
 pub fn draw_error_overlay(ctx: &mut AppCtx, error: &AppError) -> Result<(), AppError> {
-    let text = alloc::format!("{}", error);
+    let text = alloc::format!("{error}");
 
     let size = ctx.display.size();
-    let screen_w = size.width as i32;
-    let screen_h = size.height as i32;
+    let screen_w = size.width.cast_signed();
+    let screen_h = size.height.cast_signed();
     let box_w = (screen_w * 2 / 3).max(280);
     let box_h = (screen_h / 3).max(120);
     let left = (screen_w - box_w) / 2;
@@ -75,10 +83,15 @@ pub fn draw_error_overlay(ctx: &mut AppCtx, error: &AppError) -> Result<(), AppE
         .stroke_color(Rgb888::new(220, 220, 220))
         .stroke_width(2)
         .build();
-    Rectangle::new(Point::new(left, top), Size::new(box_w as u32, box_h as u32))
-        .into_styled(background)
-        .draw(ctx.display)
-        .ok();
+    let box_width_u32 = u32::try_from(box_w).unwrap_or(u32::MAX);
+    let box_height_u32 = u32::try_from(box_h).unwrap_or(u32::MAX);
+    Rectangle::new(
+        Point::new(left, top),
+        Size::new(box_width_u32, box_height_u32),
+    )
+    .into_styled(background)
+    .draw(ctx.display)
+    .ok();
 
     let title_style = MonoTextStyle::new(&FONT_9X15, Rgb888::new(255, 80, 80));
     let body_style = MonoTextStyle::new(&FONT_9X15, Rgb888::WHITE);
@@ -86,8 +99,9 @@ pub fn draw_error_overlay(ctx: &mut AppCtx, error: &AppError) -> Result<(), AppE
     let padding_x = 12;
     let padding_y = 16;
     let line_height = 18;
-    let max_chars = ((box_w - padding_x * 2) / 9).max(1) as usize;
-    let max_lines = ((box_h - padding_y * 2) / line_height).max(1) as usize;
+    let max_chars = usize::try_from(((box_w - padding_x * 2) / 9).max(1)).unwrap_or(usize::MAX);
+    let max_lines =
+        usize::try_from(((box_h - padding_y * 2) / line_height).max(1)).unwrap_or(usize::MAX);
 
     Text::new(
         "Error",
@@ -104,7 +118,7 @@ pub fn draw_error_overlay(ctx: &mut AppCtx, error: &AppError) -> Result<(), AppE
         lines_yielded: 0,
     };
     for (idx, line) in wrapper.enumerate() {
-        let y = top + padding_y + line_height * (idx as i32 + 1);
+        let y = top + padding_y + line_height * (i32::try_from(idx).unwrap_or(i32::MAX) + 1);
         Text::new(line, Point::new(left + padding_x, y), body_style)
             .draw(ctx.display)
             .ok();

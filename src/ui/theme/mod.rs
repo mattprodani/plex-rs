@@ -1,7 +1,7 @@
 use crate::{
-    AppError,
     core::app::{App, AppCtx, DisplayEntry},
     ui::boot_menu::BootMenu,
+    AppError,
 };
 use serde::Deserialize;
 
@@ -29,28 +29,34 @@ pub enum Theme {
 
 impl Theme {
     /// Draw the boot menu.
-    pub fn draw_boot_menu<'a, T: App + DisplayEntry>(
+    ///
+    /// # Errors
+    /// Returns any drawing error from the selected theme implementation.
+    pub fn draw_boot_menu<T: App + DisplayEntry>(
         &self,
         ctx: &mut AppCtx,
-        menu: &BootMenu<'a, T>,
+        menu: &BootMenu<'_, T>,
     ) -> Result<(), AppError> {
         match self {
-            Theme::Default => default::draw_boot_menu(ctx, menu),
+            Self::Default => default::draw_boot_menu(ctx, menu),
             #[cfg(feature = "mocha")]
-            Theme::Mocha => mocha::draw_boot_menu(ctx, menu),
+            Self::Mocha => mocha::draw_boot_menu(ctx, menu),
             #[cfg(feature = "wii")]
-            Theme::Wii => wii::draw_boot_menu(ctx, menu),
+            Self::Wii => wii::draw_boot_menu(ctx, menu),
         }
     }
 
     /// Draw an error overlay.
+    ///
+    /// # Errors
+    /// Returns any drawing error from the selected theme implementation.
     pub fn draw_error_overlay(&self, ctx: &mut AppCtx, error: &AppError) -> Result<(), AppError> {
         match self {
-            Theme::Default => default::draw_error_overlay(ctx, error),
+            Self::Default => default::draw_error_overlay(ctx, error),
             #[cfg(feature = "mocha")]
-            Theme::Mocha => mocha::draw_error_overlay(ctx, error),
+            Self::Mocha => mocha::draw_error_overlay(ctx, error),
             #[cfg(feature = "wii")]
-            Theme::Wii => wii::draw_error_overlay(ctx, error),
+            Self::Wii => wii::draw_error_overlay(ctx, error),
         }
     }
 }
@@ -71,23 +77,22 @@ impl<'a> Iterator for LineWrapper<'a> {
         }
 
         let mut byte_idx = 0;
-        let mut char_count = 0;
         let mut last_space = None;
         let mut newline_idx = None;
 
-        for (i, c) in self.text.char_indices() {
+        let max_chars = self.max_chars;
+        for (char_count, (idx, c)) in self.text.char_indices().enumerate() {
             if c == '\n' {
-                newline_idx = Some(i);
+                newline_idx = Some(idx);
                 break;
             }
-            if char_count == self.max_chars {
+            if char_count == max_chars {
                 break;
             }
             if c.is_whitespace() {
-                last_space = Some(i);
+                last_space = Some(idx);
             }
-            byte_idx = i + c.len_utf8();
-            char_count += 1;
+            byte_idx = idx + c.len_utf8();
         }
 
         if let Some(nl) = newline_idx {

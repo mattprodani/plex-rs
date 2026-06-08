@@ -28,7 +28,7 @@ pub enum TargetConfig {
 impl TargetConfig {
     fn into_boot_target(self) -> BootTarget {
         match self {
-            TargetConfig::Generic {
+            Self::Generic {
                 label,
                 executable,
                 options,
@@ -48,25 +48,29 @@ pub struct Config {
 }
 
 impl Config {
-    /// Load configuration from a TOML file at the specified path
+    /// Load configuration from a TOML file at the specified path.
+    ///
+    /// # Errors
+    /// Returns an error if the file cannot be read or the contents are invalid TOML.
     pub fn load_from_file(path: &str) -> Result<Self, ConfigError> {
         // Read file from UEFI filesystem
         let contents = read_file_to_string(path)?;
 
         // Parse TOML
-        let config: Config = toml::from_str(&contents).map_err(|e| {
-            log::error!("TOML parse error: {:?}", e);
+        let config: Self = toml::from_str(&contents).map_err(|e| {
+            log::error!("TOML parse error: {e:?}");
             ConfigError::ParseError
         })?;
 
         Ok(config)
     }
 
-    /// Convert config into a vector of GenericBootTarget
+    /// Convert config into a vector of `GenericBootTarget`.
+    #[must_use]
     pub fn into_boot_targets(self) -> Vec<BootTarget> {
         self.boot_targets
             .into_iter()
-            .map(|target| target.into_boot_target())
+            .map(TargetConfig::into_boot_target)
             .collect()
     }
 }
@@ -112,11 +116,11 @@ pub enum ConfigError {
 impl core::fmt::Display for ConfigError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            ConfigError::InvalidPath => write!(f, "Invalid file path"),
-            ConfigError::FileNotFound => write!(f, "Config file not found"),
-            ConfigError::FsError => write!(f, "Filesystem error"),
-            ConfigError::EncodingError => write!(f, "File encoding error"),
-            ConfigError::ParseError => write!(f, "TOML parse error"),
+            Self::InvalidPath => write!(f, "Invalid file path"),
+            Self::FileNotFound => write!(f, "Config file not found"),
+            Self::FsError => write!(f, "Filesystem error"),
+            Self::EncodingError => write!(f, "File encoding error"),
+            Self::ParseError => write!(f, "TOML parse error"),
         }
     }
 }

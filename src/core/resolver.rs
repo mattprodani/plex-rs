@@ -19,12 +19,13 @@ pub struct ResolverCtx<'a> {
 pub enum Resolver {}
 
 /// Plug-in interface for boot entry discovery.
+#[allow(unused)]
 impl Resolver {
     fn name(&self) -> &'static str {
         todo!();
     }
 
-    fn resolve(&self, _ctx: &ResolverCtx) -> Result<Vec<BootTarget>, AppError> {
+    fn resolve(&self, ctx: &ResolverCtx) -> Result<Vec<BootTarget>, AppError> {
         todo!();
     }
 }

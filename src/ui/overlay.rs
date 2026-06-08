@@ -3,9 +3,9 @@
 //! Provides reusable graphical overlays that can be drawn on top of
 //! the current screen, such as error dialogs.
 
-use crate::AppError;
 use crate::core::app::{App, AppCtx, AppResult};
 use crate::ui::theme::Theme;
+use crate::AppError;
 use uefi::proto::console::text::{Key, ScanCode};
 
 /// An error overlay that displays an application error and waits for the user
@@ -17,15 +17,16 @@ pub struct ErrorOverlay<'a> {
 
 impl<'a> ErrorOverlay<'a> {
     /// Creates a new error overlay.
-    pub fn new(error: &'a AppError, theme: Theme) -> Self {
+    #[must_use]
+    pub const fn new(error: &'a AppError, theme: Theme) -> Self {
         Self { error, theme }
     }
 }
 
-impl<'a> App for ErrorOverlay<'a> {
+impl App for ErrorOverlay<'_> {
     fn run(&mut self, ctx: &mut AppCtx) -> AppResult {
         if let Err(e) = self.theme.draw_error_overlay(ctx, self.error) {
-            log::error!("failed to draw error overlay: {}", e);
+            log::error!("failed to draw error overlay: {e}");
         }
 
         loop {
@@ -39,10 +40,7 @@ impl<'a> App for ErrorOverlay<'a> {
                 if matches!(key, Key::Printable(c) if c == '\r' || c == '\n') {
                     return AppResult::Done;
                 }
-                if matches!(
-                    key,
-                    Key::Special(ScanCode::END) | Key::Special(ScanCode::ESCAPE)
-                ) {
+                if matches!(key, Key::Special(ScanCode::END | ScanCode::ESCAPE)) {
                     return AppResult::Done;
                 }
             }

@@ -1,7 +1,7 @@
 use embedded_graphics::{
     mono_font::{
+        ascii::{FONT_10X20, FONT_6X10},
         MonoTextStyleBuilder,
-        ascii::{FONT_6X10, FONT_10X20},
     },
     pixelcolor::Rgb888,
     prelude::*,
@@ -10,10 +10,10 @@ use embedded_graphics::{
 };
 
 use crate::{
-    AppError,
     core::app::{App, AppCtx, DisplayEntry},
     ui::boot_menu::BootMenu,
     ui::theme::LineWrapper,
+    AppError,
 };
 
 // --- Wii Palette ---
@@ -28,22 +28,24 @@ const BORDER: Rgb888 = Rgb888::new(0xCC, 0xCC, 0xCC);
 const RED: Rgb888 = Rgb888::new(0xFF, 0x33, 0x33);
 
 const LOGO: &[&str] = &[
-    r#"           _ _ "#,
-    r#" __      _(_|_)"#,
-    r#" \ \ /\ / / | |"#,
-    r#"  \ V  V /| | |"#,
-    r#"   \_/\_/ |_|_|"#,
-    r#"               "#,
+    r"           _ _ ",
+    r" __      _(_|_)",
+    r" \ \ /\ / / | |",
+    r"  \ V  V /| | |",
+    r"   \_/\_/ |_|_|",
+    r"               ",
 ];
 
-pub fn draw_boot_menu<'a, T: App + DisplayEntry>(
+/// # Errors
+/// Returns any drawing error from the underlying display.
+pub fn draw_boot_menu<T: App + DisplayEntry>(
     ctx: &mut AppCtx,
-    menu: &BootMenu<'a, T>,
+    menu: &BootMenu<'_, T>,
 ) -> Result<(), AppError> {
     let display = &mut *ctx.display;
     let size = display.size();
-    let w = size.width as i32;
-    let h = size.height as i32;
+    let w = i32::try_from(size.width).unwrap_or(i32::MAX);
+    let h = i32::try_from(size.height).unwrap_or(i32::MAX);
 
     display.clear(BG);
 
@@ -85,14 +87,16 @@ fn draw_modal_background<D>(
 ) where
     D: DrawTarget<Color = Rgb888>,
 {
+    let box_width_u32 = u32::try_from(box_width).unwrap_or(u32::MAX);
+    let box_height_u32 = u32::try_from(box_height).unwrap_or(u32::MAX);
     let modal_rect = Rectangle::new(
         Point::new(box_x, box_y),
-        Size::new(box_width as u32, box_height as u32),
+        Size::new(box_width_u32, box_height_u32),
     );
 
     let shadow_rect = Rectangle::new(
         Point::new(box_x + 4, box_y + 4),
-        Size::new(box_width as u32, box_height as u32),
+        Size::new(box_width_u32, box_height_u32),
     );
     RoundedRectangle::with_equal_corners(shadow_rect, Size::new(24, 24))
         .into_styled(PrimitiveStyle::with_fill(SHADOW))
@@ -153,16 +157,14 @@ where
         .build();
 
     for (i, line) in LOGO.iter().enumerate() {
-        Text::new(
-            line,
-            Point::new(logo_x, logo_y + (i as i32 * 20)),
-            logo_style,
-        )
-        .draw(display)
-        .ok();
+        let idx = i32::try_from(i).unwrap_or(i32::MAX);
+        Text::new(line, Point::new(logo_x, logo_y + idx * 20), logo_style)
+            .draw(display)
+            .ok();
     }
 
-    let quote_y = logo_y + (LOGO.len() as i32 * 20) + 50;
+    let logo_lines = i32::try_from(LOGO.len()).unwrap_or(i32::MAX);
+    let quote_y = logo_y + logo_lines * 20 + 50;
     let quote_style = MonoTextStyleBuilder::new()
         .font(&FONT_10X20)
         .text_color(TEXT_LIGHT)
@@ -175,9 +177,9 @@ where
         .ok();
 }
 
-fn draw_boot_entries<'a, D, T>(
+fn draw_boot_entries<D, T>(
     display: &mut D,
-    menu: &BootMenu<'a, T>,
+    menu: &BootMenu<'_, T>,
     panel_x: i32,
     panel_y: i32,
     panel_width: i32,
@@ -203,10 +205,13 @@ fn draw_boot_entries<'a, D, T>(
 
     for (i, target) in menu.targets().iter().enumerate() {
         let display_opts = target.display_options();
-        let y = item_start_y + (i as i32 * item_height);
+        let y = item_start_y + i32::try_from(i).unwrap_or(i32::MAX) * item_height;
         let item_rect = Rectangle::new(
             Point::new(panel_x, y),
-            Size::new(panel_width as u32, item_height as u32),
+            Size::new(
+                u32::try_from(panel_width).unwrap_or(u32::MAX),
+                u32::try_from(item_height).unwrap_or(u32::MAX),
+            ),
         );
 
         let label = display_opts.label.as_str();
@@ -277,21 +282,25 @@ where
     .ok();
 }
 
+/// # Errors
+/// Returns any drawing error from the underlying display.
 pub fn draw_error_overlay(ctx: &mut AppCtx, error: &AppError) -> Result<(), AppError> {
-    let text = alloc::format!("{}", error);
+    let text = alloc::format!("{error}");
 
     let display = &mut *ctx.display;
     let size = display.size();
-    let screen_w = size.width as i32;
-    let screen_h = size.height as i32;
+    let screen_w = i32::try_from(size.width).unwrap_or(i32::MAX);
+    let screen_h = i32::try_from(size.height).unwrap_or(i32::MAX);
     let box_w = (screen_w * 2 / 3).max(400);
     let box_h = (screen_h / 3).max(200);
     let left = (screen_w - box_w) / 2;
     let top = (screen_h - box_h) / 2;
 
+    let box_width_u32 = u32::try_from(box_w).unwrap_or(u32::MAX);
+    let box_height_u32 = u32::try_from(box_h).unwrap_or(u32::MAX);
     let shadow_rect = Rectangle::new(
         Point::new(left + 8, top + 8),
-        Size::new(box_w as u32, box_h as u32),
+        Size::new(box_width_u32, box_height_u32),
     );
     RoundedRectangle::with_equal_corners(shadow_rect, Size::new(24, 24))
         .into_styled(PrimitiveStyleBuilder::new().fill_color(SHADOW).build())
@@ -303,7 +312,10 @@ pub fn draw_error_overlay(ctx: &mut AppCtx, error: &AppError) -> Result<(), AppE
         .stroke_color(RED)
         .stroke_width(3)
         .build();
-    let modal_rect = Rectangle::new(Point::new(left, top), Size::new(box_w as u32, box_h as u32));
+    let modal_rect = Rectangle::new(
+        Point::new(left, top),
+        Size::new(box_width_u32, box_height_u32),
+    );
     RoundedRectangle::with_equal_corners(modal_rect, Size::new(24, 24))
         .into_styled(background)
         .draw(display)
@@ -331,8 +343,9 @@ pub fn draw_error_overlay(ctx: &mut AppCtx, error: &AppError) -> Result<(), AppE
     let padding_x = 20;
     let padding_y = 60;
     let line_height = 20;
-    let max_chars = ((box_w - padding_x * 2) / 10).max(1) as usize;
-    let max_lines = ((box_h - padding_y * 2) / line_height).max(1) as usize;
+    let max_chars = usize::try_from(((box_w - padding_x * 2) / 10).max(1)).unwrap_or(usize::MAX);
+    let max_lines =
+        usize::try_from(((box_h - padding_y * 2) / line_height).max(1)).unwrap_or(usize::MAX);
 
     let wrapper = LineWrapper {
         text: &text,
@@ -342,7 +355,7 @@ pub fn draw_error_overlay(ctx: &mut AppCtx, error: &AppError) -> Result<(), AppE
     };
 
     for (idx, line) in wrapper.enumerate() {
-        let y = top + padding_y + line_height * (idx as i32);
+        let y = top + padding_y + line_height * i32::try_from(idx).unwrap_or(i32::MAX);
         Text::new(line, Point::new(left + padding_x, y), body_style)
             .draw(display)
             .ok();

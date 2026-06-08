@@ -32,8 +32,8 @@ pub struct PathReference {
 pub enum PartitionReference {
     /// The partition where the bootloader EFI executable was loaded from
     ///
-    /// For UEFI systems: This is determined by examining the LoadedImage
-    /// protocol's DeviceHandle, which tells us which partition the firmware
+    /// For UEFI systems: This is determined by examining the `LoadedImage`
+    /// protocol's `DeviceHandle`, which tells us which partition the firmware
     /// loaded us from.
     ///
     /// Syntax: `boot():`
@@ -77,11 +77,8 @@ impl PathReference {
     /// ```
     ///
     /// # Errors
-    /// - `MissingDelimiter` - No `:` found
-    /// - `InvalidPath` - Path doesn't start with `/` or is empty after `:`
-    /// - `UnknownResource` - Resource type not recognized
-    /// - `InvalidGuid` - GUID format incorrect (wrong length, invalid hex, missing hyphens)
-    /// - `InvalidSyntax` - boot() has unexpected content in parens
+    /// # Errors
+    /// Returns a `PathRefParseError` if the URI does not conform to the rules.
     pub fn parse(s: &str) -> Result<Self, PathRefParseError> {
         let (resource, path) = s
             .split_once(':')
@@ -89,7 +86,7 @@ impl PathReference {
 
         let location = PartitionReference::parse(resource)?;
 
-        Ok(PathReference {
+        Ok(Self {
             location,
             path: path.to_string(),
         })
@@ -103,6 +100,7 @@ impl PathReference {
     /// let uri = PathReference::parse("boot():/vmlinuz-linux").unwrap().to_uri();
     /// assert_eq!(uri, "boot():/vmlinuz-linux");
     /// ```
+    #[must_use]
     pub fn to_uri(&self) -> String {
         format!("{}{}", self.location.to_uri_prefix(), self.path)
     }
@@ -117,6 +115,9 @@ impl PartitionReference {
     /// PartitionReference::parse("boot()").unwrap();
     /// PartitionReference::parse("guid(550e8400-e29b-41d4-a716-446655440000)").unwrap();
     /// ```
+    ///
+    /// # Errors
+    /// Returns a `PathRefParseError` if the partition reference is invalid.
     pub fn parse(s: &str) -> Result<Self, PathRefParseError> {
         let Some(lparen) = s.find('(') else {
             return Err(PathRefParseError::InvalidSyntax);
@@ -128,26 +129,25 @@ impl PartitionReference {
             .ok_or(PathRefParseError::MissingDelimiter)?;
 
         match scheme {
-            "boot" => Ok(PartitionReference::Boot),
-            "guid" => Ok(PartitionReference::Guid(
+            "boot" => Ok(Self::Boot),
+            "guid" => Ok(Self::Guid(
                 uefi::Guid::from_str(arg).map_err(|_| PathRefParseError::InvalidGuid)?,
             )),
             _ => Err(PathRefParseError::UnknownResource(scheme.to_string())),
         }
     }
-    /// Convert to URI prefix (everything before the path)
+    /// Convert to URI prefix (everything before the path).
     ///
     /// # Example
     /// ```
     /// use plex_boot::path::PartitionReference;
     /// assert_eq!(PartitionReference::Boot.to_uri_prefix(), "boot():");
     /// ```
+    #[must_use]
     pub fn to_uri_prefix(&self) -> String {
         match self {
-            PartitionReference::Boot => String::from("boot():"),
-            PartitionReference::Guid(guid) => {
-                format!("guid({}):", guid)
-            }
+            Self::Boot => String::from("boot():"),
+            Self::Guid(guid) => format!("guid({guid}):"),
         }
     }
 }
@@ -174,7 +174,7 @@ pub enum PathRefParseError {
     #[error("Invalid Guid")]
     InvalidGuid,
 
-    /// boot() syntax error (something in the parens)
+    /// `boot()` syntax error (something in the parens)
     #[error("Invalid Syntax")]
     InvalidSyntax,
 }
@@ -186,23 +186,23 @@ pub struct DiskManager {
 }
 
 impl DiskManager {
-    /// Create a new DiskManager by discovering all partitions
+    /// Create a new `DiskManager` by discovering all partitions
     ///
     /// # Arguments
     /// * `boot_handle` - The handle for the partition containing the bootloader
     ///
-    ///     (typically from LoadedImage protocol's device_handle)
+    ///     (typically from `LoadedImage` protocol's `device_handle`)
     ///
     /// # Process
-    /// 1. Call LocateHandleBuffer for BlockIO protocol
-    /// 2. Filter to only logical partitions (media.is_logical_partition())
+    /// 1. Call `LocateHandleBuffer` for `BlockIO` protocol
+    /// 2. Filter to only logical partitions (`media.is_logical_partition()`)
     /// 3. For each partition, extract PARTUUID from device path
     /// 4. Store mapping of PARTUUID -> Handle
     ///
     /// # Errors
     /// Returns error if:
-    /// - LocateHandleBuffer fails
-    /// - Cannot open BlockIO protocol on any handle
+    /// - `LocateHandleBuffer` fails
+    /// - Cannot open `BlockIO` protocol on any handle
     /// - Cannot allocate memory for partition list
     pub fn new(boot_handle: Handle) -> uefi::Result<Self> {
         use uefi::proto::media::partition::PartitionInfo;
@@ -218,19 +218,19 @@ impl DiskManager {
                 Ok(partition_info) => {
                     partitions.push(Partition {
                         handle: *handle,
-                        mbr_partition_info: partition_info.mbr_partition_record().cloned(),
-                        gpt_partition_info: partition_info.gpt_partition_entry().cloned(),
+                        mbr_partition_info: partition_info.mbr_partition_record().copied(),
+                        gpt_partition_info: partition_info.gpt_partition_entry().copied(),
                         is_system: partition_info.is_system(),
                         is_boot: boot_device_handle == Some(*handle),
                     });
                 }
                 Err(e) => {
-                    error!("failed to open protocol on a partition: {:?}", e)
+                    error!("failed to open protocol on a partition: {e:?}");
                 }
             }
         }
 
-        Ok(DiskManager { partitions })
+        Ok(Self { partitions })
     }
     //
     /// Resolve a partition reference to a UEFI handle
@@ -239,10 +239,10 @@ impl DiskManager {
     /// * `reference` - The partition to locate
     ///
     /// # Returns
-    /// The UEFI handle for the partition, suitable for opening SimpleFileSystem
+    /// The UEFI handle for the partition, suitable for opening `SimpleFileSystem`
     ///
     /// # Behavior
-    /// - Boot: Returns cached boot_handle immediately (O(1))
+    /// - Boot: Returns cached `boot_handle` immediately (O(1))
     /// - Guid: Linear search through partitions for matching GUID (O(n))
     ///
     /// # Errors
@@ -308,13 +308,16 @@ impl Partition {
 impl PartitionReference {
     fn matches(&self, p: &Partition) -> bool {
         match &self {
-            PartitionReference::Boot => p.is_boot,
-            PartitionReference::Guid(id) => p.guid().as_ref() == Some(id),
+            Self::Boot => p.is_boot,
+            Self::Guid(id) => p.guid().as_ref() == Some(id),
         }
     }
 }
 
 /// Convenience function to safely open a UEFI protocol on a handle.
+///
+/// # Errors
+/// Returns a UEFI error if the protocol cannot be opened.
 pub fn open_protocol_get<P: ProtocolPointer + ?Sized>(
     handle: Handle,
 ) -> Result<uefi::boot::ScopedProtocol<P>, uefi::Error> {

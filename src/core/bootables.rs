@@ -13,6 +13,7 @@ use uefi::boot::LoadImageSource;
 use uefi::cstr16;
 use uefi::proto::device_path::PoolDevicePath;
 use uefi::proto::loaded_image::LoadedImage;
+use uefi::proto::BootPolicy;
 use uefi::CString16;
 
 #[derive(Debug)]
@@ -27,7 +28,7 @@ pub enum BootTarget {
 impl BootTarget {
     fn boot(&self, handle: uefi::Handle, dm: &DiskManager) -> Result<(), AppError> {
         match self {
-            BootTarget::Generic(target) => target.boot(handle, dm),
+            Self::Generic(target) => target.boot(handle, dm),
         }
     }
 }
@@ -35,7 +36,7 @@ impl BootTarget {
 impl App for BootTarget {
     fn run(&mut self, ctx: &mut AppCtx) -> AppResult {
         match self.boot(ctx.handle, ctx.disk_manager) {
-            Ok(_) => AppResult::Booted,
+            Ok(()) => AppResult::Booted,
             Err(e) => AppResult::Error(e),
         }
     }
@@ -44,7 +45,7 @@ impl App for BootTarget {
 impl DisplayEntry for BootTarget {
     fn display_options(&self) -> DisplayOptions {
         match self {
-            BootTarget::Generic(target) => target.display_options(),
+            Self::Generic(target) => target.display_options(),
         }
     }
 }
@@ -66,7 +67,7 @@ pub struct GenericBootTarget {
     /// Path to executable. current limitation is that this path is relative
     /// to the root the bootloader is loaded from.
     executable: CString16,
-    /// Command options to be passed to LoadedImage::SetLoadOptions
+    /// Command options to be passed to `LoadedImage::SetLoadOptions`.
     options: CString16,
 }
 
@@ -80,9 +81,9 @@ impl GenericBootTarget {
         Self {
             label: label.as_ref().to_string(),
             executable: CString16::try_from(executable.as_ref())
-                .unwrap_or(cstr16!("failed to parse").to_owned()),
+                .unwrap_or_else(|_| cstr16!("failed to parse").to_owned()),
             options: CString16::try_from(options.as_ref())
-                .unwrap_or(cstr16!("failed to parse").to_owned()),
+                .unwrap_or_else(|_| cstr16!("failed to parse").to_owned()),
         }
     }
 
@@ -97,7 +98,7 @@ impl GenericBootTarget {
 
         let src = LoadImageSource::FromDevicePath {
             device_path: &img_path,
-            boot_policy: Default::default(),
+            boot_policy: BootPolicy::default(),
         };
 
         let loaded_image_handle = uefi::boot::load_image(handle, src)?;
@@ -106,8 +107,9 @@ impl GenericBootTarget {
 
         unsafe {
             loaded_img.set_load_options(
-                self.options.as_ptr() as *const u8,
-                self.options.num_bytes() as u32,
+                self.options.as_ptr().cast::<u8>(),
+                u32::try_from(self.options.num_bytes())
+                    .map_err(|_| AppError::Generic("load options length overflow"))?,
             );
         }
 
@@ -126,5 +128,5 @@ fn path_to_string(path: &PoolDevicePath) -> CString16 {
         uefi::proto::device_path::text::DisplayOnly(true),
         uefi::proto::device_path::text::AllowShortcuts(true),
     )
-    .unwrap_or(cstr16!("failed to parse.").into())
+    .unwrap_or_else(|_| cstr16!("failed to parse.").into())
 }
