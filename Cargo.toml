@@ -33,3 +33,6 @@ wii = []
 name = "plex-boot"
 path = "src/main.rs"
 test = false
+
+[workspace]
+members = ["xtask"]
